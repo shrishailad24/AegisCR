@@ -1,0 +1,8 @@
+.venv/
+.idea/
+credentials/
+*.json
+__pycache__/
+*.pkl
+assets/generated_letters/
+temp_uploads/
