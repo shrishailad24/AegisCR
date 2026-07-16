@@ -1,0 +1,128 @@
+[
+    {
+        "Reference_No": "LN827322",
+        "Customer_Name": "Rajesh Kumar",
+        "Gender": "Male",
+        "Married": "Yes",
+        "Dependents": 2,
+        "Education": "Graduate",
+        "Self_Employed": "No",
+        "Credit_History": 1.0,
+        "Income": 75000,
+        "Co_Income": 35000,
+        "Loan_Amount": 4500000,
+        "Loan_Term": 240,
+        "Property_Details": {
+            "State": "Karnataka",
+            "District": "Bengaluru Urban",
+            "Village": "Whitefield",
+            "PIN_Code": "560066",
+            "Survey_Number": "101/2",
+            "Land_Area": 2400,
+            "Land_Type": "Residential",
+            "Latitude": 12.9716,
+            "Longitude": 77.5946,
+            "property_class": "Land only",
+            "built_up_area": 0,
+            "building_age": 0,
+            "construction_quality": "Standard",
+            "collateral_mode": "Secured (Using Borrower Owned Property)",
+            "guidance_value_per_sqft": 3500,
+            "total_guidance_value": 8400000,
+            "market_value_per_sqft": 11483,
+            "total_market_value": 27559200,
+            "nearby_prices": [
+                10908,
+                12401,
+                10449
+            ],
+            "avg_nearby_value_per_sqft": 11252,
+            "projections": {
+                "1yr": 30866304,
+                "3yr": 38718691,
+                "5yr": 48568726,
+                "growth_rate_pct": 12
+            },
+            "fraud_check": {
+                "status": "PASS",
+                "flags": []
+            },
+            "eligible_ltv": 0.8,
+            "max_loan_amount": 22047360,
+            "land_market_value": 27559200,
+            "building_market_value": 0,
+            "building_guidance_value": 0,
+            "construction_cost_sqft": 0,
+            "depreciated_factor": 1.0
+        },
+        "Documents": {
+            "aadhaar": "Aadhaar_Rajesh_Kumar.pdf",
+            "pan": "PAN_Rajesh_Kumar.pdf",
+            "salary_slip": "SalarySlip_Infosys_Rajesh.pdf",
+            "sale_deed": "SaleDeed_Whitefield_Rajesh.pdf"
+        }
+    },
+    {
+        "Reference_No": "LN451037",
+        "Customer_Name": "Rajesh Kumar",
+        "Gender": "Male",
+        "Married": "Yes",
+        "Dependents": 2,
+        "Education": "Graduate",
+        "Self_Employed": "No",
+        "Credit_History": 1.0,
+        "Income": 75000,
+        "Co_Income": 35000,
+        "Loan_Amount": 4500000,
+        "Loan_Term": 240,
+        "Property_Details": {
+            "State": "Karnataka",
+            "District": "Bengaluru Urban",
+            "Village": "Whitefield",
+            "PIN_Code": "560066",
+            "Survey_Number": "101/2",
+            "Land_Area": 2400,
+            "Land_Type": "Residential",
+            "Latitude": 12.9716,
+            "Longitude": 77.5946,
+            "property_class": "Residential Apartment",
+            "built_up_area": 1500,
+            "building_age": 4,
+            "construction_quality": "Standard",
+            "collateral_mode": "Secured (Using Borrower Owned Property)",
+            "guidance_value_per_sqft": 3500,
+            "total_guidance_value": 9900000,
+            "market_value_per_sqft": 11483,
+            "total_market_value": 29815200,
+            "nearby_prices": [
+                10908,
+                12401,
+                10449
+            ],
+            "avg_nearby_value_per_sqft": 11252,
+            "projections": {
+                "1yr": 33393024,
+                "3yr": 41888209,
+                "5yr": 52544569,
+                "growth_rate_pct": 12
+            },
+            "fraud_check": {
+                "status": "PASS",
+                "flags": []
+            },
+            "eligible_ltv": 0.8,
+            "max_loan_amount": 23852160,
+            "land_market_value": 27559200,
+            "building_market_value": 2256000,
+            "building_guidance_value": 1500000,
+            "construction_cost_sqft": 1600,
+            "depreciated_factor": 0.94
+        },
+        "Documents": {
+            "aadhaar": "DataScience_Salary_Dashboard_Report.pdf",
+            "pan": "dvztableau.pdf",
+            "salary_slip": "mlreportt----.pdf",
+            "sale_deed": "shrishail's_resume_compressed (1).pdf"
+        }
+    }
+]
