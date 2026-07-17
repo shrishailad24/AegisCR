@@ -6,8 +6,12 @@ services:
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.11.9
       - key: UNSPLASH_ACCESS_KEY
         value: zRFlykNbtqwtGbs5CPWvvGRLxNK9xOmQwBsQ4X1Io1Q
       - key: PEXELS_API_KEY
         value: TI15nFTnkzqWP0UAUGuAtLJcFM4PLkLV0JBwVb2KMorQDfk4RGYNIt60
+      - key: WEATHER_API_KEY
+        value: db8abf34273cc1c921dde0f6986a6920
+      - key: GROQ_API_KEY
+        value: YOUR_GROQ_API_KEY

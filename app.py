@@ -70,7 +70,7 @@ def get_current_weather(lat, lon):
         if abs(cache["lat"] - lat) < 0.05 and abs(cache["lon"] - lon) < 0.05:
             return cache["weather"]
             
-    api_key = "db8abf34273cc1c921dde0f6986a6920"
+    api_key = os.environ.get("WEATHER_API_KEY", "db8abf34273cc1c921dde0f6986a6920")
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
     try:
         r = requests.get(url, timeout=3)
