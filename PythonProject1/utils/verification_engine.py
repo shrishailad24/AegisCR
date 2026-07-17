@@ -252,16 +252,17 @@ def conduct_fraud_brain_audit(uploaded_files, profile_type="Standard"):
     confidence = 98.0
     
     # Check Aadhaar mask status
-    if profile_type == "Identity Tampering / Spoofing":
+    if "Identity Tampering" in profile_type or "Property Deed Mismatch" in profile_type:
         flags.append("Fraud Brain Alert: Unmasked Aadhaar UID detected. First 8 digits are fully visible (Security compliance failure).")
         flags.append("Altered Font Alert: PAN Date of Birth bounding box displays non-standard system fonts.")
         confidence = 48.0
-    elif profile_type == "Income Alteration / Salary Bounces":
+    elif "Income Alteration" in profile_type or "Fake Salary" in profile_type:
         flags.append("Metadata mismatch: Salary Slip edit history shows PDF modification tools ('Sejda PDF Editor').")
         flags.append("Font Compression Mismatch: Altered numeric values detected in the salary earnings table.")
         confidence = 52.0
-    elif profile_type == "Registry Boundaries Fraud":
+    elif "Registry Boundaries" in profile_type or "Duplicate" in profile_type:
         flags.append("Geospatial Overlay Mismatch: Survey map boundaries overlap with unauthorized forest land plots.")
+        flags.append("Fraud Brain Alert: Active duplicate application matching this name/DOB discovered in external bank database.")
         confidence = 65.0
         
     status = "PASS" if confidence >= 85.0 else ("WARNING" if confidence >= 60.0 else "FAIL")

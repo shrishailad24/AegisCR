@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: aegiscr-portal
+    env: python
+    buildCommand: pip install -r requirements.txt && python train_model.py
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: WEATHER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

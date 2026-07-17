@@ -149,16 +149,40 @@ def get_property_rates(state, district, village, pincode, land_type):
 
 def calculate_valuation(state, district, village, pincode, survey_number, land_area, land_type, lat, lon,
                         property_class="Land only", built_up_area=0, building_age=0, construction_quality="Standard"):
+    print("Starting property valuation process...")
+    
+    # Input validation checks
+    if not state or state == "Select State" or not state.strip():
+        raise ValueError("State name is missing or invalid.")
+    if not district or district == "Select District" or not district.strip():
+        raise ValueError("District name is missing or invalid.")
+    if not village or not village.strip():
+        raise ValueError("Village/Layout name is missing.")
+    if not survey_number or not survey_number.strip():
+        raise ValueError("Survey/Khata number is missing.")
+    if land_area is None or land_area <= 0:
+        raise ValueError("Land area must be a positive number greater than 0.")
+    if not land_type or not land_type.strip():
+        raise ValueError("Land type must be specified (e.g. Residential, Commercial).")
+    if lat is None or lon is None:
+        raise ValueError("Latitude and Longitude coordinates must be pinned.")
+
+    print(f"Reading property details: State={state}, District={district}, Village={village}, Land Area={land_area} sqft, Type={land_type}")
+    
     # Lookup guidance rates
+    print("Looking up guidance rates and market multiplier indices...")
     guidance_per_sqft, market_mult, growth_rate = get_property_rates(state, district, village, pincode, land_type)
+    print(f"Guidance rate found: ₹{guidance_per_sqft}/sqft, Multiplier: {market_mult}, Projected growth: {growth_rate*100}%")
     
     # Use ML model if exists, otherwise fallback to mathematical formulation
     market_per_sqft = int(guidance_per_sqft * market_mult)
     
+    print("Loading valuation model...")
     if os.path.exists("valuation_model.pkl"):
         try:
             with open("valuation_model.pkl", "rb") as f:
                 val_model = pickle.load(f)
+            print("Valuation model loaded successfully.")
                 
             input_df = pd.DataFrame([{
                 "State": state,
@@ -167,11 +191,22 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
                 "Land_Area": land_area,
                 "Guidance_Value_Per_Sqft": guidance_per_sqft
             }])
+            print(f"Model inputs prepared: {input_df.to_dict(orient='records')[0]}")
+            print(f"Model columns count: {len(input_df.columns)}, Names: {list(input_df.columns)}")
             
+            # Explicit column validation check
+            expected_cols = ["State", "District", "Land_Type", "Land_Area", "Guidance_Value_Per_Sqft"]
+            missing_cols = [col for col in expected_cols if col not in input_df.columns]
+            if missing_cols:
+                raise ValueError(f"Model input schema error. Missing columns: {missing_cols}")
+                
             predicted_rate = val_model.predict(input_df)[0]
             market_per_sqft = int(predicted_rate)
+            print("Model prediction completed.")
         except Exception as e:
             print("Error loading ML valuation model, using formula. Error:", e)
+    else:
+        print("Valuation model .pkl file not found on server, using fallback guidance formula.")
             
     land_market_value = market_per_sqft * land_area
     
@@ -246,7 +281,7 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
     }
     eligible_ltv = ltv_limits.get(land_type, 0.70)
     max_loan_amount = int(total_market_value * eligible_ltv)
-    
+    print(f"Property valuation completed successfully. Market value: ₹{total_market_value}, Guidance value: ₹{total_guidance_value}")
     return {
         "guidance_value_per_sqft": guidance_per_sqft,
         "total_guidance_value": total_guidance_value,

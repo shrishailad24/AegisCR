@@ -3,8 +3,8 @@
 credentials/
 *.json
 __pycache__/
+*.pyc
+*.pkl
 assets/generated_letters/
 temp_uploads/
-*.exe
-__pycache__/
-*.pyc
+.env
