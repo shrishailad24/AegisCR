@@ -183,6 +183,7 @@ def verify_property_dossier(sale_deed, valuation_details, applicant_name=""):
         "District_Status": dist_status,
         "Area_Status": area_status,
         "Owner_Status": owner_status,
+        "Owner_Match_Ratio": owner_ratio,
         "Is_Verified": (survey_status == "PASS") and (village_status == "PASS") and (dist_status == "PASS") and (owner_status == "PASS"),
         "Flags": flags
     }
@@ -320,6 +321,14 @@ def compile_relationship_nodes(app_name, identity_res, income_res, property_res,
     ]
     
     if not is_unsecured:
-        nodes.append({"from": "Borrower", "to": "Sale Deed Title", "check": "Owner Title Registry Match", "status": property_res.get("Owner_Status", "PASS"), "score": 95 if property_res.get("Is_Verified", True) else 40})
+        p_res = property_res or {}
+        p_status = p_res.get("Owner_Status", "PASS")
+        if p_status == "N/A":
+            p_score = 100
+        elif p_status == "FAIL":
+            p_score = int(p_res.get("Owner_Match_Ratio", 0.0) * 100)
+        else:
+            p_score = int(p_res.get("Owner_Match_Ratio", 1.0) * 100)
+        nodes.append({"from": "Borrower", "to": "Sale Deed Title", "check": "Owner Title Registry Match", "status": p_status, "score": p_score})
         
     return nodes

@@ -6,3 +6,5 @@ reportlab
 folium
 streamlit-folium
 requests
+pymupdf
+google-cloud-vision

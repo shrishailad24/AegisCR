@@ -112,8 +112,11 @@ elif "app_folium_map_main" in st.session_state and st.session_state["app_folium_
     lon_val = st.session_state["app_folium_map_main"]["last_clicked"]["lng"]
 
 weather_profile = get_current_weather(lat_val, lon_val)
-bg_url = get_background_style(weather_profile["main"])
 current_time_info = get_network_time_details()
+
+from utils.background_manager import BackgroundManager
+bg_manager = BackgroundManager()
+bg_url = bg_manager.get_background_url(weather_profile["main"], current_time_info)
 
 # ================= HISTORY FILE =================
 HISTORY_FILE = "valuation_loan_history.csv"
@@ -141,23 +144,100 @@ def save_to_history(record):
 
 # ================= DESIGN SYSTEM (CSS) =================
 def set_design_system(background_image_url):
+    # Render background divs for full-screen responsive blurred background with dark overlay and smooth transitions
+    st.markdown(
+        f"""
+        <div class="aegis-bg-container">
+            <div class="aegis-bg-image" style="background-image: url('{background_image_url}');"></div>
+            <div class="aegis-bg-overlay"></div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Preload the next background image to minimize latency on transitions
+    next_url = st.session_state.get("bg_next_url", "")
+    if next_url:
+        st.markdown(f'<link rel="preload" as="image" href="{next_url}">', unsafe_allow_html=True)
+        
     st.markdown(
         f"""
         <style>
         .stApp {{
-            background: linear-gradient(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.55)),
-            url("{background_image_url}") center/cover fixed;
+            background: transparent !important;
         }}
         
-        /* Slate-dark text colors for readability on light background */
-        .stApp, .stApp p, .stApp li, .stApp label {{
-            color: #0f172a !important;
+        .main, .block-container {{
+            background-color: transparent !important;
+        }}
+        
+        /* Glassmorphism sidebar background */
+        [data-testid="stSidebar"] {{
+            background-color: rgba(255, 255, 255, 0.7) !important;
+            backdrop-filter: blur(12px);
+        }}
+        
+        .aegis-bg-container {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -999;
+            overflow: hidden;
+            background: #0f172a;
+        }}
+        
+        .aegis-bg-image {{
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            right: -15px;
+            bottom: -15px;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(6px);
+            transition: background-image 1.5s ease-in-out;
+        }}
+        
+        .aegis-bg-overlay {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Dark overlay 35-45% for readability */
+            background: linear-gradient(rgba(15, 23, 42, 0.38), rgba(15, 23, 42, 0.43));
+        }}
+        
+        /* High contrast text colors for dynamic dark nature backgrounds (strictly in stMain area) */
+        [data-testid="stMain"] label,
+        [data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMain"] [data-testid="stMarkdownContainer"] li,
+        [data-testid="stMain"] [data-testid="stMarkdownContainer"] span,
+        [data-testid="stMain"] [data-testid="stHeader"] {{
+            color: #f1f5f9 !important;
             font-weight: 500;
         }}
         
-        .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6, .section-header {{
-            color: #0284c7 !important;
+        [data-testid="stMain"] h1, 
+        [data-testid="stMain"] h2, 
+        [data-testid="stMain"] h3, 
+        [data-testid="stMain"] h4, 
+        [data-testid="stMain"] h5, 
+        [data-testid="stMain"] h6, 
+        [data-testid="stMain"] .section-header {{
+            color: #38bdf8 !important;
             font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }}
+        
+        /* Enforce dark text inside native alerts and notification blocks for readability */
+        div.stAlert p, div.stAlert li, div.stAlert span,
+        div[data-testid="stNotification"] p, div[data-testid="stNotification"] span,
+        .stAlert div {{
+            color: #0f172a !important;
         }}
         
         /* Force light background on text inputs, select boxes, dropdown buttons, and inner text elements */
@@ -205,30 +285,50 @@ def set_design_system(background_image_url):
         }}
 
         /* Title banner */
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+        
         .app-title-container {{
             text-align: center;
-            background: rgba(255, 255, 255, 0.45);
-            border: 1px solid rgba(2, 132, 199, 0.15);
-            border-radius: 16px;
-            padding: 24px;
+            background: rgba(255, 255, 255, 0.88) !important;
+            border: 1px solid rgba(2, 132, 199, 0.25) !important;
+            border-radius: 20px;
+            padding: 28px 24px;
             margin-bottom: 25px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }}
         
         .main-title {{
-            font-size: 36px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 38px;
             font-weight: 800;
-            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 5px;
+            -webkit-text-fill-color: transparent !important;
+            margin-bottom: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }}
         
         .subtitle {{
-            color: #1e293b !important;
-            font-size: 16px;
-            font-weight: 400;
+            font-family: 'Outfit', sans-serif;
+            color: #334155 !important;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0.85;
+            margin-top: 4px;
+        }}
+        
+        .title-accent-bar {{
+            width: 70px;
+            height: 4px;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            margin: 12px auto 0 auto;
+            border-radius: 2px;
         }}
 
         /* Metric Cards */
@@ -267,45 +367,51 @@ def set_design_system(background_image_url):
 
         /* Content block */
         .glass-card {{
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(2, 132, 199, 0.12);
+            background: rgba(255, 255, 255, 0.85) !important;
+            border: 1px solid rgba(2, 132, 199, 0.2) !important;
             padding: 25px;
             border-radius: 16px;
             backdrop-filter: blur(15px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
             margin-bottom: 20px;
         }}
 
         /* Frosted-Glass Sidebar theme overrides */
         section[data-testid="stSidebar"] {{
-            background-color: rgba(255, 255, 255, 0.5) !important;
-            backdrop-filter: blur(10px) !important;
+            background-color: rgba(255, 255, 255, 0.75) !important;
+            backdrop-filter: blur(12px) !important;
             border-right: 1px solid rgba(2, 132, 199, 0.15) !important;
         }}
         
         section[data-testid="stSidebar"] div.stAlert,
         section[data-testid="stSidebar"] div[data-testid="stNotification"],
         section[data-testid="stSidebar"] div.stAlert > div {{
-            background-color: rgba(255, 255, 255, 0.65) !important;
+            background-color: rgba(255, 255, 255, 0.8) !important;
             color: #0f172a !important;
             border: 1px solid rgba(2, 132, 199, 0.15) !important;
         }}
 
-        section[data-testid="stSidebar"] div.stAlert p,
-        section[data-testid="stSidebar"] div.stAlert li,
-        section[data-testid="stSidebar"] div.stAlert span,
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] li,
+        section[data-testid="stSidebar"] span,
         section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] h1,
         section[data-testid="stSidebar"] h2,
-        section[data-testid="stSidebar"] h4 {{
+        section[data-testid="stSidebar"] h3,
+        section[data-testid="stSidebar"] h4,
+        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] li,
+        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {{
             color: #0f172a !important;
         }}
         
         .section-header {{
-            color: #0284c7;
+            color: #38bdf8 !important;
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 15px;
-            border-bottom: 1px solid rgba(2, 132, 199, 0.15);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.3) !important;
             padding-bottom: 6px;
         }}
 
@@ -447,8 +553,20 @@ st.sidebar.markdown("<p style='text-align:center; color:#475569; font-size:10px;
 st.markdown(
     """
     <div class="app-title-container">
-        <div class="main-title">🛡️ AegisCR Underwriting Portal</div>
+        <div class="main-title">
+            <svg class="title-icon" viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="url(#cyan-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 12px;">
+                <defs>
+                    <linearGradient id="cyan-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0284c7" />
+                        <stop offset="100%" stop-color="#38bdf8" />
+                    </linearGradient>
+                </defs>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            AegisCR Underwriting Portal
+        </div>
         <div class="subtitle">AI-Powered Intelligent Underwriting & Collateral Appraisal Platform</div>
+        <div class="title-accent-bar"></div>
     </div>
     """,
     unsafe_allow_html=True
@@ -683,6 +801,11 @@ with tab3:
             "Registry Boundaries Fraud (Flags Geospatial Coordinates map overlay conflicts)"
         ]
     )
+    enable_simulation = st.checkbox("Enable Demo Simulation (Fall back to spoof profile if no files are uploaded)", value=False)
+    if enable_simulation:
+        st.info("💡 Demo Simulation is active. If you run the audit without uploading files, the app will simulate the selected spoof profile.")
+    else:
+        st.warning("⚠️ Demo Simulation is inactive. You must upload files, or the audit will fail with 'Missing Document' flags.")
     st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -835,7 +958,10 @@ with tab3:
             has_any_upload = (upl_aadhaar is not None) or (upl_pan is not None) or (upl_slip is not None) or (upl_deed is not None) or \
                              (upl_passport is not None) or (upl_dl is not None) or (upl_itr is not None) or (upl_ec is not None) or (upl_bill is not None)
             
-            if has_any_upload:
+            # Execute real OCR if files are uploaded, otherwise fall back to demo profiles if simulation is enabled
+            use_demo_simulation = enable_simulation and not has_any_upload
+            
+            if not use_demo_simulation:
                 # STRICT REAL AUDIT MODE: Non-uploaded files are marked as Missing
                 if aadhaar_ocr is None:
                     aadhaar_ocr = {"Missing": True, "Name": "Missing", "DOB": "N/A", "Aadhaar_Number": "MISSING", "Confidence_Score": 0}
@@ -899,7 +1025,7 @@ with tab3:
             
             # Save timeline steps
             timeline_logs = [
-                {"time": t_upload, "event": "📥 Document Dossier Uploaded", "desc": f"Files uploaded successfully. Strict Audit Mode active: {has_any_upload}."},
+                {"time": t_upload, "event": "📥 Document Dossier Uploaded", "desc": f"Files uploaded successfully. Strict Audit Mode active: {not use_demo_simulation}."},
                 {"time": t_ocr, "event": "🤖 Google Cloud Vision OCR", "desc": "Structured text parameter annotations completed."},
                 {"time": t_forensic, "event": "🔍 Forensic Brain Audits & Fraud Check", "desc": f"Analyzed resolution, font alterations, and file EXIF properties (Confidence: {fraud_res.get('Fraud_Brain_Confidence', 98.0)}%)."},
                 {"time": t_verify, "event": "🔗 Node Linkage Mappings & Verification Completion", "desc": f"Cross-document fuzzy name matching completed: {trust_score}% score."}
@@ -1056,7 +1182,7 @@ with tab3:
         col_cf1, col_cf2 = st.columns(2)
         with col_cf1:
             st.markdown(f"- **Bank Deposits consistency**: `{'🟢 Stable matching credits' if cf_chk['Status'] == 'PASS' else '🔴 ALERT: salary variance detected'}`")
-            st.markdown(f"- **EMI Bounces logs**: `{'🟢 0 default entries' if cf_chk['EMI_Bounces'] == 0 else f'🔴 {cf_chk['EMI_Bounces']} default bounces detected'}`")
+            st.markdown(f"- **EMI Bounces logs**: `{'🟢 0 default entries' if cf_chk['EMI_Bounces'] == 0 else '🔴 ' + str(cf_chk['EMI_Bounces']) + ' default bounces detected'}`")
         with col_cf2:
             st.markdown(f"- **Cashflow stability Index**: `{cf_chk['Cashflow_Stability_Score']}/100`")
             st.markdown(f"- **Reserve balance reserve**: `₹{cf_chk['Average_Balance']:,.2f}`")
@@ -1310,6 +1436,34 @@ with tab4:
                 # Save underwriting timeline logs in session state
                 st.session_state["underwriting_timeline"] = underwriting_timeline
                 
+                # Save underwriting evaluation results to session state to prevent NameError on rerun
+                st.session_state["underwriting_results"] = {
+                    "dti_ratio": dti_ratio,
+                    "emi": emi,
+                    "ltv_ratio": ltv_ratio,
+                    "ai_report": ai_report,
+                    "decision_text": decision_text,
+                    "identity_res": identity_res,
+                    "income_res": income_res,
+                    "property_res": property_res,
+                    "cashflow_res": cashflow_res,
+                    "fraud_res": fraud_res,
+                    "trust_score": trust_score,
+                    "vp": vp,
+                    "name": name,
+                    "gender": gender,
+                    "married": married,
+                    "dependents": dependents,
+                    "education": education,
+                    "self_emp": self_emp,
+                    "app_income": app_income,
+                    "co_income": co_income,
+                    "loan_amount": loan_amount,
+                    "loan_term": loan_term,
+                    "credit_hist": credit_hist,
+                    "collateral_mode": collateral_mode
+                }
+                
                 # Store in history
                 ref_no = f"LN{random.randint(100000,999999)}"
                 history_record = {
@@ -1337,15 +1491,37 @@ with tab4:
                 st.rerun()
                 
         # Render Decision details if saved
-        if "underwriting_timeline" in st.session_state:
+        if "underwriting_timeline" in st.session_state and "underwriting_results" in st.session_state:
             # Show results on UI
             st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
             st.subheader("📊 Underwriting Decision & Credit Audit")
             
-            # Fetch decision metrics from valuation details
-            # Get latest decision from fresh history
-            last_record = history_df.iloc[-1] if not history_df.empty else {"Decision": "APPROVED", "Reference_No": "LN892401"}
-            decision_text = last_record["Decision"].capitalize()
+            # Retrieve evaluated variables from stored results
+            ur = st.session_state["underwriting_results"]
+            dti_ratio = ur["dti_ratio"]
+            emi = ur["emi"]
+            ltv_ratio = ur["ltv_ratio"]
+            ai_report = ur["ai_report"]
+            decision_text = ur["decision_text"]
+            identity_res = ur["identity_res"]
+            income_res = ur["income_res"]
+            property_res = ur["property_res"]
+            cashflow_res = ur["cashflow_res"]
+            fraud_res = ur["fraud_res"]
+            trust_score = ur["trust_score"]
+            vp = ur["vp"]
+            name = ur["name"]
+            gender = ur["gender"]
+            married = ur["married"]
+            dependents = ur["dependents"]
+            education = ur["education"]
+            self_emp = ur["self_emp"]
+            app_income = ur["app_income"]
+            co_income = ur["co_income"]
+            loan_amount = ur["loan_amount"]
+            loan_term = ur["loan_term"]
+            credit_hist = ur["credit_hist"]
+            collateral_mode = ur["collateral_mode"]
             
             # Render DIGITAL LOAN TWIN Profile Card
             st.markdown("#### 👤 Applicant Digital Loan Twin Profile")
