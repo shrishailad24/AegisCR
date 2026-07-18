@@ -27,6 +27,31 @@ def log_memory_usage(tag=""):
 
 log_memory_usage("App Startup Initialized")
 
+# --- Configurable GitHub repository URL ---
+GITHUB_REPO_URL = os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/shrishailad24/AegisCR").strip()
+
+@st.cache_resource
+def get_git_info():
+    version = "v2.1.0-Prod"
+    commit_hash = "N/A"
+    try:
+        import subprocess
+        commit_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("utf-8").strip()
+    except Exception:
+        try:
+            git_dir = os.path.join(os.path.dirname(__file__), ".git")
+            if os.path.exists(git_dir):
+                head_file = os.path.join(git_dir, "HEAD")
+                with open(head_file, "r") as f:
+                    ref = f.readline().strip()
+                if ref.startswith("ref:"):
+                    ref_path = os.path.join(git_dir, ref.split(" ")[1])
+                    with open(ref_path, "r") as f:
+                        commit_hash = f.readline().strip()[:7]
+        except Exception:
+            pass
+    return version, commit_hash
+
 import json
 
 # ================= FIREBASE AUTH IMPORTS (LAZY LOAD ENABLED) =================
@@ -1130,7 +1155,20 @@ if st.sidebar.button("Run Golden Test (Property Math)"):
         print(f"[DEVELOPER SELF-TEST] Error: {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("<p style='text-align:center; color:#475569; font-size:10px;'>Final-Year Placement Project © 2026</p>", unsafe_allow_html=True)
+version, commit_hash = get_git_info()
+github_icon_html = f"""
+<div style='text-align:center; margin-top:10px; margin-bottom:10px;'>
+    <a href='{GITHUB_REPO_URL}' target='_blank' style='text-decoration:none; color:#0284c7; font-size:11px; font-weight:bold; display:inline-flex; align-items:center; gap:6px;'>
+        <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle;">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        GitHub Repository
+    </a>
+    <p style='margin: 4px 0 0 0; color:#475569; font-size:10px;'>Version: <code>{version}</code> | Commit: <code>{commit_hash}</code></p>
+    <p style='margin: 6px 0 0 0; color:#475569; font-size:9px;'>Final-Year Placement Project © 2026</p>
+</div>
+"""
+st.sidebar.markdown(github_icon_html, unsafe_allow_html=True)
 
 
 # ================= TITLE BANNER =================
@@ -1171,6 +1209,19 @@ history_df = load_history()
 # ================= TAB 1: EXECUTIVE DASHBOARD =================
 with tab1:
     st.markdown("<div class='section-header'>📊 PORTFOLIO PERFORMANCE CONSOLE</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div style='display:flex; justify-content:flex-end; margin-top:-45px; margin-bottom:15px;'>
+            <a href='{GITHUB_REPO_URL}' target='_blank' style='text-decoration:none; background-color:#1e293b; color:#cbd5e1; border:1px solid #334155; padding:8px 16px; border-radius:6px; font-size:12px; font-weight:bold; display:inline-flex; align-items:center; gap:8px;'>
+                <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+                View Source on GitHub
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     # Filter stats by the logged-in user's UID (different employee has different stats)
     user_uid = "N/A"

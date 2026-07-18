@@ -1,5 +1,7 @@
 # Walkthrough & Project Documentation - Underwriting & Verification Engine (AegisCR)
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/shrishailad24/AegisCR)
+
 This documentation describes the changes made to correct the loan underwriting and document verification errors, the implementation of the intelligent dynamic background system, and the Render deployment configuration.
 
 ---

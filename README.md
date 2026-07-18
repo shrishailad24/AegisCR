@@ -1,5 +1,7 @@
 🛡️ AegisCR
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/shrishailad24/AegisCR)
+
 AI-Powered Credit Risk Assessment & Loan Intelligence Platform
 
 AegisCR is an intelligent credit risk assessment platform that leverages Artificial Intelligence and Machine Learning to help banks, NBFCs, and financial institutions make smarter, faster, and more secure lending decisions. The system analyzes applicant information, verifies documents, detects fraud, predicts loan default risk, and generates explainable insights to support loan approval.
