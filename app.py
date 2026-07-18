@@ -52,6 +52,42 @@ def get_git_info():
             pass
     return version, commit_hash
 
+def reverse_geocode(lat, lon):
+    """
+    Reverse geocodes lat/lon using Nominatim OpenStreetMap API.
+    Returns: (state, district, taluk, village, postcode)
+    """
+    import requests
+    try:
+        headers = {"User-Agent": "AegisCR-Valuation-App/1.0"}
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=en"
+        r = requests.get(url, headers=headers, timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            address = data.get("address", {})
+            
+            state = address.get("state", "")
+            if "karnataka" in state.lower():
+                state = "Karnataka"
+            elif "telangana" in state.lower():
+                state = "Telangana"
+            elif "maharashtra" in state.lower():
+                state = "Maharashtra"
+            elif "tamil nadu" in state.lower():
+                state = "Tamil Nadu"
+            else:
+                state = "Other"
+                
+            district = address.get("city_district", address.get("county", address.get("district", address.get("city", ""))))
+            taluk = address.get("subdistrict", address.get("suburb", address.get("town", address.get("village", ""))))
+            village = address.get("neighbourhood", address.get("village", address.get("suburb", address.get("road", address.get("hamlet", "")))))
+            postcode = address.get("postcode", "")
+            
+            return state, district, taluk, village, postcode
+    except Exception as e:
+        print(f"[REVERSE GEOCODE ERROR] {e}")
+    return None
+
 import json
 
 # ================= FIREBASE AUTH IMPORTS (LAZY LOAD ENABLED) =================
@@ -1285,7 +1321,22 @@ with tab2:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("📋 Property Address Registration")
         
-        state = st.selectbox("State", ["Karnataka", "Telangana", "Maharashtra", "Tamil Nadu", "Other"])
+        # Initialize interactive form keys if not already present
+        if "val_state" not in st.session_state:
+            st.session_state["val_state"] = "Karnataka"
+            st.session_state["val_district_sel"] = "Bengaluru Urban"
+            st.session_state["val_taluk_sel"] = "Bangalore"
+            st.session_state["val_village_sel"] = "Whitefield"
+            st.session_state["val_district_text"] = ""
+            st.session_state["val_taluk_text"] = ""
+            st.session_state["val_village_text"] = ""
+            st.session_state["val_pincode"] = "560066"
+            st.session_state["val_survey"] = "101/2"
+
+        state_options = ["Karnataka", "Telangana", "Maharashtra", "Tamil Nadu", "Other"]
+        # Find index for state
+        state_idx = state_options.index(st.session_state["val_state"]) if st.session_state["val_state"] in state_options else 0
+        state = st.selectbox("State", state_options, index=state_idx, key="val_state")
         
         taluk = None
         if state == "Karnataka":
@@ -1296,31 +1347,74 @@ with tab2:
             if not district_list:
                 district_list = ["Bagalkote", "Bangalore Rural", "Basavangudi", "Belagavi", "Mysore", "Ramanagara"]
                 
-            district = st.selectbox("District", district_list)
+            curr_dist = st.session_state.get("val_district_sel", district_list[0])
+            if curr_dist not in district_list:
+                matched_dist = district_list[0]
+                for d in district_list:
+                    if curr_dist and (d.lower() in curr_dist.lower() or curr_dist.lower() in d.lower()):
+                        matched_dist = d
+                        break
+                st.session_state["val_district_sel"] = matched_dist
+            district = st.selectbox("District", district_list, key="val_district_sel")
             
             # Fetch taluks dynamically
             taluk_list = get_db_taluks(district)
             if not taluk_list:
                 taluk_list = ["Badami", "Devanahalli", "Basavanagudi", "Sirsi", "Humnabad"]
-            taluk = st.selectbox("Taluk / Sub-Registrar Office", taluk_list)
+            curr_taluk = st.session_state.get("val_taluk_sel", taluk_list[0])
+            if curr_taluk not in taluk_list:
+                matched_taluk = taluk_list[0]
+                for t in taluk_list:
+                    if curr_taluk and (t.lower() in curr_taluk.lower() or curr_taluk.lower() in t.lower()):
+                        matched_taluk = t
+                        break
+                st.session_state["val_taluk_sel"] = matched_taluk
+            taluk = st.selectbox("Taluk / Sub-Registrar Office", taluk_list, key="val_taluk_sel")
             
             # Fetch villages dynamically
             village_list = get_db_villages(district, taluk)
             if not village_list:
                 village_list = ["Adagallu", "Kyada", "Ananthagiri", "Katharaki"]
-            village = st.selectbox("Village / Layout / Road", village_list)
+            curr_village = st.session_state.get("val_village_sel", village_list[0])
+            if curr_village not in village_list:
+                matched_village = village_list[0]
+                for v in village_list:
+                    if curr_village and (v.lower() in curr_village.lower() or curr_village.lower() in v.lower()):
+                        matched_village = v
+                        break
+                st.session_state["val_village_sel"] = matched_village
+            village = st.selectbox("Village / Layout / Road", village_list, key="val_village_sel")
             
         elif state in GEO_DB:
             district_list = list(GEO_DB[state]["districts"].keys())
-            district = st.selectbox("District", district_list)
-            village_list = GEO_DB[state]["districts"][district]["villages"]
-            village = st.selectbox("Village / Layout", village_list)
-        else:
-            district = st.text_input("Enter District")
-            village = st.text_input("Enter Village")
+            curr_dist = st.session_state.get("val_district_sel", district_list[0])
+            if curr_dist not in district_list:
+                matched_dist = district_list[0]
+                for d in district_list:
+                    if curr_dist and (d.lower() in curr_dist.lower() or curr_dist.lower() in d.lower()):
+                        matched_dist = d
+                        break
+                st.session_state["val_district_sel"] = matched_dist
+            district = st.selectbox("District", district_list, key="val_district_sel")
             
-        pincode = st.text_input("PIN Code", value="560066")
-        survey_number = st.text_input("Survey Number (e.g. 142/3)", value="101/2")
+            village_list = GEO_DB[state]["districts"][district]["villages"]
+            curr_village = st.session_state.get("val_village_sel", village_list[0])
+            if curr_village not in village_list:
+                matched_village = village_list[0]
+                for v in village_list:
+                    if curr_village and (v.lower() in curr_village.lower() or curr_village.lower() in v.lower()):
+                        matched_village = v
+                        break
+                st.session_state["val_village_sel"] = matched_village
+            village = st.selectbox("Village / Layout", village_list, key="val_village_sel")
+            taluk = ""
+        else:
+            district = st.text_input("Enter District", key="val_district_text")
+            taluk = st.text_input("Enter Taluk / Sub-District", key="val_taluk_text")
+            village = st.text_input("Enter Village", key="val_village_text")
+            
+        pincode = st.text_input("PIN Code", key="val_pincode")
+        survey_number = st.text_input("Survey Number (e.g. 142/3)", key="val_survey")
         
         # Land details
         land_area = st.number_input("Land Area (Sq Ft)", min_value=100, value=2400)
@@ -1410,6 +1504,65 @@ with tab2:
         if map_data and map_data.get("last_clicked"):
             clicked_lat = map_data["last_clicked"]["lat"]
             clicked_lon = map_data["last_clicked"]["lng"]
+            
+            # Check if clicked coordinates changed
+            last_clicked = st.session_state.get("last_clicked_coords", None)
+            if last_clicked != (clicked_lat, clicked_lon):
+                st.session_state["last_clicked_coords"] = (clicked_lat, clicked_lon)
+                st.session_state["map_center"] = (clicked_lat, clicked_lon)
+                
+                # Perform reverse geocoding to auto-fill the form
+                with st.spinner("🔍 Reverse geocoding clicked location..."):
+                    geo_res = reverse_geocode(clicked_lat, clicked_lon)
+                    if geo_res:
+                        state_g, district_g, taluk_g, village_g, postcode_g = geo_res
+                        
+                        # Update State
+                        state_options = ["Karnataka", "Telangana", "Maharashtra", "Tamil Nadu", "Other"]
+                        if state_g in state_options:
+                            st.session_state["val_state"] = state_g
+                        else:
+                            st.session_state["val_state"] = "Other"
+                            
+                        # If Karnataka, resolve dropdown options safely
+                        if state_g == "Karnataka":
+                            from utils.valuation_module import get_db_districts, get_db_taluks, get_db_villages
+                            d_list = get_db_districts()
+                            matched_d = None
+                            for d in d_list:
+                                if district_g and (d.lower() in district_g.lower() or district_g.lower() in d.lower()):
+                                    matched_d = d
+                                    break
+                            if matched_d:
+                                st.session_state["val_district_sel"] = matched_d
+                                
+                                t_list = get_db_taluks(matched_d)
+                                matched_t = None
+                                for t in t_list:
+                                    if taluk_g and (t.lower() in taluk_g.lower() or taluk_g.lower() in t.lower()):
+                                        matched_t = t
+                                        break
+                                if matched_t:
+                                    st.session_state["val_taluk_sel"] = matched_t
+                                    
+                                    v_list = get_db_villages(matched_d, matched_t)
+                                    matched_v = None
+                                    for v in v_list:
+                                        if village_g and (v.lower() in village_g.lower() or village_g.lower() in v.lower()):
+                                            matched_v = v
+                                            break
+                                    if matched_v:
+                                        st.session_state["val_village_sel"] = matched_v
+                        else:
+                            # Update text fields for non-Karnataka
+                            st.session_state["val_district_text"] = district_g
+                            st.session_state["val_taluk_text"] = taluk_g
+                            st.session_state["val_village_text"] = village_g
+                            
+                        if postcode_g:
+                            st.session_state["val_pincode"] = postcode_g
+                            
+                        st.rerun()
             
         st.write(f"📍 **Captured Coordinates:** Latitude: `{clicked_lat:.6f}` | Longitude: `{clicked_lon:.6f}`")
         st.markdown("</div>", unsafe_allow_html=True)
