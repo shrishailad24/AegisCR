@@ -1429,6 +1429,32 @@ with tab2:
         if land_area <= 0:
             missing_fields.append("Land Area (must be greater than 0)")
             
+        # Strict validation checks for PIN Code & Survey Number
+        import re
+        pincode_clean = pincode.strip()
+        if not pincode_clean:
+            missing_fields.append("PIN Code")
+        elif not re.match(r'^\d{6}$', pincode_clean):
+            missing_fields.append("PIN Code must be exactly 6 digits (e.g. 560038)")
+        else:
+            prefix_2 = pincode_clean[:2]
+            state_prefixes = {
+                "Karnataka": ["56", "57", "58", "59"],
+                "Telangana": ["50", "51", "52", "53"],
+                "Maharashtra": ["40", "41", "42", "43", "44"],
+                "Tamil Nadu": ["60", "61", "62", "63", "64"]
+            }
+            if state in state_prefixes:
+                allowed = state_prefixes[state]
+                if prefix_2 not in allowed:
+                    missing_fields.append(
+                        f"PIN Code mismatch: A PIN Code starting with '{prefix_2}' is invalid for state '{state}' (expected prefixes: {', '.join(allowed)})."
+                    )
+                    
+        survey_clean = survey_number.strip()
+        if survey_clean and not re.match(r'^\d+[a-zA-Z\d\/\-\s]*$', survey_clean):
+            missing_fields.append("Survey Number format is invalid. It must start with a digit and follow formats like '142/3' or '101/A'.")
+            
         if missing_fields:
             st.error("❌ **Valuation blocked. Please complete the required fields:**\n" + 
                      "\n".join([f"• {field}" for field in missing_fields]))
