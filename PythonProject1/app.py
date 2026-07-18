@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "PythonProject1"))
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -8,18 +12,30 @@ import requests
 from datetime import datetime
 import folium
 from streamlit_folium import st_folium
-from utils.pdf_generator import generate_pdf
-from utils.ai_explainer import generate_ai_underwriting_report, query_underwriter_chat
 from utils.valuation_module import calculate_valuation, GEO_DB
-from utils.verification_engine import (
-    verify_identity_dossier, verify_income_dossier, verify_property_dossier,
-    verify_cashflow_stability, conduct_fraud_brain_audit,
-    calculate_document_trust_score, compile_relationship_nodes, levenshtein_ratio
-)
-from utils.risk_engine import calculate_aegis_risk
-from utils.ocr_engine import process_dossier_file
+import json
+
+# ================= MEMORY LOGGING HELPER =================
+def log_memory_usage(tag=""):
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        mem_mb = process.memory_info().rss / (1024 * 1024)
+        print(f"[MEMORY LOG] {tag} - RAM Usage: {mem_mb:.2f} MB")
+    except Exception:
+        pass
+
+log_memory_usage("App Startup Initialized")
 
 import json
+
+# ================= FIREBASE AUTH IMPORTS (LAZY LOAD ENABLED) =================
+import streamlit.components.v1 as components
+
+# Declare Google Login custom component once at module level
+parent_dir = os.path.dirname(__file__)
+comp_path = os.path.join(parent_dir, "firebase_login_component")
+google_login_comp = components.declare_component("google_login", path=comp_path)
 
 # ================= CONFIG =================
 st.set_page_config(page_title="AI Smart Land & Home Valuation Portal", layout="wide")
@@ -92,25 +108,8 @@ def run_system_health_checks():
 # ================= TIME API UTILITIES =================
 def get_network_time_details():
     """
-    Fetches Kolkata server time properties from WorldTimeAPI, falling back to local system clock.
+    Returns Kolkata server time properties using local system clock.
     """
-    try:
-        r = requests.get("https://worldtimeapi.org/api/timezone/Asia/Kolkata", timeout=2)
-        if r.status_code == 200:
-            data = r.json()
-            dt_str = data["datetime"]
-            dt = datetime.fromisoformat(dt_str)
-            return {
-                "date": dt.strftime("%d-%m-%Y"),
-                "time": dt.strftime("%H:%M:%S"),
-                "timezone": data["timezone"],
-                "day_of_week": data["day_of_week"],
-                "day_of_year": data["day_of_year"],
-                "full_ts": dt.strftime("%d-%m-%Y %H:%M:%S")
-            }
-    except Exception:
-        pass
-        
     dt_now = datetime.now()
     return {
         "date": dt_now.strftime("%d-%m-%Y"),
@@ -179,6 +178,7 @@ elif "app_folium_map_main" in st.session_state and st.session_state["app_folium_
     lon_val = st.session_state["app_folium_map_main"]["last_clicked"]["lng"]
 
 weather_profile = get_current_weather(lat_val, lon_val)
+st.session_state["weather_profile"] = weather_profile
 current_time_info = get_network_time_details()
 
 from utils.background_manager import BackgroundManager
@@ -191,16 +191,39 @@ HISTORY_FILE = "valuation_loan_history.csv"
 def load_history():
     if os.path.exists(HISTORY_FILE):
         try:
-            return pd.read_csv(HISTORY_FILE)
-        except Exception:
+            df = pd.read_csv(HISTORY_FILE)
+            if not df.empty and "Date" in df.columns:
+                # Optimize: only prune once per user session to avoid slow writes on every tab switch
+                if not st.session_state.get("history_pruned", False):
+                    parsed_dates = pd.to_datetime(df["Date"], format="%d-%m-%Y", errors="coerce")
+                    today_start = pd.Timestamp.now().normalize()
+                    one_week_ago = today_start - pd.Timedelta(days=7)
+                    valid_mask = (parsed_dates >= one_week_ago) | parsed_dates.isna()
+                    
+                    if not valid_mask.all():
+                        cleaned_df = df[valid_mask]
+                        cleaned_df.to_csv(HISTORY_FILE, index=False)
+                        st.session_state["history_pruned"] = True
+                        return cleaned_df
+                    st.session_state["history_pruned"] = True
+            return df
+        except Exception as e:
+            print(f"Error loading and pruning history: {e}")
             return pd.DataFrame()
     return pd.DataFrame(columns=[
         "Reference_No", "Date", "Customer_Name", "State", "District", "Village", "PIN_Code",
         "Survey_Number", "Land_Area", "Land_Type", "Market_Value", "Guidance_Value",
-        "Loan_Amount", "LTV_Ratio", "DTI_Ratio", "Risk_Score", "Decision"
+        "Loan_Amount", "LTV_Ratio", "DTI_Ratio", "Risk_Score", "Decision", "User_UID"
     ])
 
 def save_to_history(record):
+    # Ensure User_UID is populated in the record
+    uid = "N/A"
+    if "user" in st.session_state:
+        uid = st.session_state["user"].get("uid", "N/A")
+    record["User_UID"] = uid
+    
+    # Save locally to CSV
     df = load_history()
     new_df = pd.DataFrame([record])
     if df.empty:
@@ -208,6 +231,10 @@ def save_to_history(record):
     else:
         df = pd.concat([df, new_df], ignore_index=True)
     df.to_csv(HISTORY_FILE, index=False)
+    
+    # Sync with Firebase Database (Lazy load)
+    from firebase.loans import save_loan_application
+    save_loan_application(uid, record["Reference_No"], record)
 
 # ================= DESIGN SYSTEM (CSS) =================
 def set_design_system(background_image_url):
@@ -539,20 +566,327 @@ def set_design_system(background_image_url):
         unsafe_allow_html=True
     )
 
+def render_login_page():
+    # Preload Outfit Font if not already loaded
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+        
+        /* Dark Glassmorphism Login Form Card styling */
+        div[data-testid="stForm"] {
+            background-color: rgba(15, 23, 42, 0.65) !important;
+            border: 1px solid rgba(2, 132, 199, 0.25) !important;
+            border-radius: 20px !important;
+            padding: 2rem !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+            backdrop-filter: blur(12px) !important;
+            margin-top: 0.5rem !important;
+        }
+        
+        /* Light/high-contrast text labels inside dark form */
+        [data-testid="stMain"] div[data-testid="stForm"] label,
+        [data-testid="stMain"] div[data-testid="stForm"] label span,
+        [data-testid="stMain"] div[data-testid="stForm"] label p,
+        [data-testid="stMain"] div[data-testid="stForm"] p,
+        [data-testid="stMain"] div[data-testid="stForm"] span,
+        [data-testid="stMain"] div[data-testid="stForm"] label * {
+            color: #cbd5e1 !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Force light background on text inputs for readability */
+        [data-testid="stMain"] div[data-testid="stForm"] input {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            color: #0f172a !important;
+            -webkit-text-fill-color: #0f172a !important;
+        }
+        
+        /* High contrast headers in form */
+        .login-header {
+            font-family: 'Outfit', sans-serif;
+            color: #38bdf8 !important;
+            font-weight: 700;
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .login-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #38bdf8 !important;
+            -webkit-text-fill-color: #38bdf8 !important;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-subtitle {
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff !important;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.5);
+            margin-top: 0.25rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Initialize session state for auth pages
+    if "auth_page" not in st.session_state:
+        st.session_state["auth_page"] = "login"
+        
+    current_page = st.session_state["auth_page"]
+    
+    # Title Banner for login
+    st.markdown(
+        """
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <div class="login-title">
+                🛡️ AegisCR Portal
+            </div>
+            <div class="login-subtitle">
+                AI-Powered Credit Risk & Land Appraisal System
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    import streamlit.components.v1 as components
+    _, col_center, _ = st.columns([1, 1.8, 1])
+    with col_center:
+        st.markdown("<br/>", unsafe_allow_html=True)
+        
+        if current_page == "login":
+            with st.form("login_form", clear_on_submit=False):
+                st.markdown('<div class="login-header">🔐 Sign In</div>', unsafe_allow_html=True)
+                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="login_email")
+                password = st.text_input("🔒 Password", type="password", placeholder="Enter your password", key="login_password")
+                submit = st.form_submit_button("Sign In", use_container_width=True)
+                
+                if submit:
+                    from firebase.auth import sign_in_with_email
+                    from firebase.users import save_user_profile
+                    if not email or not password:
+                        st.error("Please enter both email and password.")
+                    else:
+                        with st.spinner("Authenticating..."):
+                            user, err = sign_in_with_email(email, password)
+                            if err:
+                                st.error(f"❌ {err}")
+                            else:
+                                save_success = save_user_profile(
+                                    uid=user["localId"],
+                                    name=user.get("displayName", email.split("@")[0].capitalize()),
+                                    email=email,
+                                    photo_url=user.get("profilePicture", ""),
+                                    provider="Email"
+                                )
+                                if save_success:
+                                    st.session_state["user"] = {
+                                        "uid": user["localId"],
+                                        "name": user.get("displayName", email.split("@")[0].capitalize()),
+                                        "email": email,
+                                        "photoURL": user.get("profilePicture", ""),
+                                        "idToken": user["idToken"],
+                                        "provider": "Email"
+                                    }
+                                    st.success("🎉 Sign-in successful! Redirecting...")
+                                    import time
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to sync user session metadata with Firebase database.")
+            
+            # Google Auth Divider
+            st.markdown(
+                """
+                <div style="text-align: center; margin: 15px 0; color: #cbd5e1; font-weight: bold;">
+                    ────────── OR ──────────
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            # Embed the Google Login widget Component
+            auth_result = google_login_comp(key="google_login_widget", height=60)
+            if auth_result:
+                if auth_result.get("status") == "success":
+                    from firebase.users import save_user_profile
+                    with st.spinner("Logging in with Google..."):
+                        save_success = save_user_profile(
+                            uid=auth_result["uid"],
+                            name=auth_result["name"],
+                            email=auth_result["email"],
+                            photo_url=auth_result["photoURL"],
+                            provider="Google",
+                            creation_time=auth_result.get("createdAt")
+                        )
+                        if save_success:
+                            st.session_state["user"] = {
+                                "uid": auth_result["uid"],
+                                "name": auth_result["name"],
+                                "email": auth_result["email"],
+                                "photoURL": auth_result["photoURL"],
+                                "idToken": auth_result["idToken"],
+                                "provider": "Google"
+                            }
+                            st.success("🎉 Sign-in successful! Redirecting...")
+                            import time
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to sync user session metadata with Firebase database.")
+                elif auth_result.get("status") == "error":
+                    st.error(f"❌ Authentication failed: {auth_result.get('message')}")
+                elif auth_result.get("status") == "loading":
+                    st.info("⚡ Connecting to Google...")
+            
+            # Navigation links
+            st.markdown("<br/>", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Create Account", use_container_width=True):
+                    st.session_state["auth_page"] = "signup"
+                    st.rerun()
+            with col2:
+                if st.button("Reset Password", use_container_width=True):
+                    st.session_state["auth_page"] = "reset"
+                    st.rerun()
+                    
+        elif current_page == "signup":
+            with st.form("signup_form", clear_on_submit=False):
+                st.markdown('<div class="login-header">📝 Create Account</div>', unsafe_allow_html=True)
+                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="signup_email")
+                password = st.text_input("🔒 Password (min 6 chars)", type="password", placeholder="Choose a password", key="signup_password")
+                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password", key="signup_confirm_password")
+                submit = st.form_submit_button("Create Account", use_container_width=True)
+                
+                if submit:
+                    from firebase.auth import sign_up_with_email
+                    from firebase.users import save_user_profile
+                    if not email or not password or not confirm_password:
+                        st.error("Please fill in all fields.")
+                    elif password != confirm_password:
+                        st.error("Passwords do not match.")
+                    elif len(password) < 6:
+                        st.error("Password should be at least 6 characters long.")
+                    else:
+                        with st.spinner("Registering..."):
+                            user, err = sign_up_with_email(email, password)
+                            if err:
+                                st.error(f"❌ {err}")
+                            else:
+                                save_success = save_user_profile(
+                                    uid=user["localId"],
+                                    name=email.split("@")[0].capitalize(),
+                                    email=email,
+                                    photo_url="",
+                                    provider="Email"
+                                )
+                                if save_success:
+                                    st.session_state["user"] = {
+                                        "uid": user["localId"],
+                                        "name": email.split("@")[0].capitalize(),
+                                        "email": email,
+                                        "photoURL": "",
+                                        "idToken": user["idToken"],
+                                        "provider": "Email"
+                                    }
+                                    st.success("🎉 Registration successful! Logging in...")
+                                    import time
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to sync user session metadata with Firebase database.")
+            
+            # Google Auth Divider
+            st.markdown(
+                """
+                <div style="text-align: center; margin: 15px 0; color: #cbd5e1; font-weight: bold;">
+                    ────────── OR ──────────
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            # Embed the Google Login widget Component
+            auth_result = google_login_comp(key="google_login_widget_signup", height=60)
+            if auth_result:
+                if auth_result.get("status") == "success":
+                    from firebase.users import save_user_profile
+                    with st.spinner("Logging in with Google..."):
+                        save_success = save_user_profile(
+                            uid=auth_result["uid"],
+                            name=auth_result["name"],
+                            email=auth_result["email"],
+                            photo_url=auth_result["photoURL"],
+                            provider="Google",
+                            creation_time=auth_result.get("createdAt")
+                        )
+                        if save_success:
+                            st.session_state["user"] = {
+                                "uid": auth_result["uid"],
+                                "name": auth_result["name"],
+                                "email": auth_result["email"],
+                                "photoURL": auth_result["photoURL"],
+                                "idToken": auth_result["idToken"],
+                                "provider": "Google"
+                            }
+                            st.success("🎉 Sign-in successful! Redirecting...")
+                            import time
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to sync user session metadata with Firebase database.")
+                elif auth_result.get("status") == "error":
+                    st.error(f"❌ Authentication failed: {auth_result.get('message')}")
+                elif auth_result.get("status") == "loading":
+                    st.info("⚡ Connecting to Google...")
+            
+            st.markdown("<br/>", unsafe_allow_html=True)
+            if st.button("Already have an account? Sign In", use_container_width=True):
+                st.session_state["auth_page"] = "login"
+                st.rerun()
+                
+        elif current_page == "reset":
+            with st.form("reset_form", clear_on_submit=False):
+                st.markdown('<div class="login-header">🔑 Reset Password</div>', unsafe_allow_html=True)
+                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="reset_email")
+                submit = st.form_submit_button("Send Reset Link", use_container_width=True)
+                
+                if submit:
+                    from firebase.auth import send_password_reset_email
+                    if not email:
+                        st.error("Please enter your email address.")
+                    else:
+                        with st.spinner("Sending reset request..."):
+                            success, err = send_password_reset_email(email)
+                            if success:
+                                st.success("📨 Password reset email sent! Please check your inbox.")
+                            else:
+                                st.error(f"❌ {err}")
+            
+            st.markdown("<br/>", unsafe_allow_html=True)
+            if st.button("Back to Sign In", use_container_width=True):
+                st.session_state["auth_page"] = "login"
+                st.rerun()
+
 set_design_system(bg_url)
 
-# ================= LOAD MODELS =================
-@st.cache_resource
-def load_ml_models():
-    try:
-        val_model = pickle.load(open("valuation_model.pkl", "rb"))
-        loan_model = pickle.load(open("loan_model.pkl", "rb"))
-        return val_model, loan_model
-    except Exception as e:
-        st.error(f"Error loading models: {e}")
-        return None, None
+# --- Firebase Authentication Intercept ---
+if "user" not in st.session_state:
+    render_login_page()
+    st.stop()
 
-val_model, loan_model = load_ml_models()
+# ================= LOAD MODELS (LAZY LOAD ENABLED) =================
+log_memory_usage("After App Boot (Models Deferred)")
 
 # ================= COORDINATE DATABASE =================
 coordinate_db = {
@@ -579,6 +913,34 @@ coordinate_db = {
 }
 
 # ================= SIDEBAR NAVIGATION =================
+# Show user details in sidebar
+if "user" in st.session_state:
+    user = st.session_state["user"]
+    user_name = user.get("name", "")
+    if not user_name:
+        user_name = user.get("email", "User").split("@")[0].capitalize()
+    user_email = user.get("email", "User")
+    user_photo = user.get("photoURL", "")
+    avatar_initial = user_name[0].upper() if user_name else "U"
+    st.sidebar.markdown(
+        f"""
+        <div style='background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.25); padding: 16px; border-radius: 12px; margin-bottom: 15px; text-align: center;'>
+            {"<img src='" + user_photo + "' style='border-radius: 50%; width: 64px; height: 64px; border: 2px solid #0284c7; margin-bottom: 8px;'/>" if user_photo else "<div style='width: 64px; height: 64px; border-radius: 50%; background-color: #0284c7; color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 8px auto;'>" + avatar_initial + "</div>"}
+            <p style='margin:0; font-size:10px; color:#475569; text-transform:uppercase;'>👤 Authenticated Personnel</p>
+            <h4 style='margin:4px 0 2px 0; color:#0284c7;'>{user_name}</h4>
+            <p style='margin:0; font-size:11px; color:#475569; overflow-wrap: break-word;'>{user_email}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    if st.sidebar.button("🔓 Log Out", use_container_width=True):
+        st.session_state.pop("user", None)
+        st.success("Logged out successfully!")
+        import time
+        time.sleep(1)
+        st.rerun()
+
 st.sidebar.markdown(
     """
     <div style='text-align: center; margin-bottom: 10px;'>
@@ -653,7 +1015,9 @@ if st.session_state.get("developer_mode", False):
         st.write(f"- **Sanction ML**: {loan_loaded}")
         st.write(f"- **OCR Status**: 🟢 Ready")
         st.write(f"- **Database Sync**: 🟢 Connected")
-        st.write(f"- **Firebase Auth**: 🟢 Connected")
+        from firebase.firebase_config import get_firebase_status
+        fb_status = "🟢 Connected" if get_firebase_status() else "🔴 Offline"
+        st.write(f"- **Firebase Auth**: {fb_status}")
         st.write(f"- **Weather API**: 🟢 Online")
         st.write(f"- **Maps Leaflet**: 🟢 Bound")
         st.write(f"- **Total Errors**: `{total_errs}`")
@@ -808,10 +1172,19 @@ history_df = load_history()
 with tab1:
     st.markdown("<div class='section-header'>📊 PORTFOLIO PERFORMANCE CONSOLE</div>", unsafe_allow_html=True)
     
-    total_records = len(history_df)
-    approved_count = len(history_df[history_df["Decision"] == "APPROVED"]) if total_records > 0 else 876
-    rejected_count = len(history_df[history_df["Decision"] == "REJECTED"]) if total_records > 0 else 369
-    total_processed = total_records if total_records > 0 else (approved_count + rejected_count)
+    # Filter stats by the logged-in user's UID (different employee has different stats)
+    user_uid = "N/A"
+    if "user" in st.session_state:
+        user_uid = st.session_state["user"].get("uid", "N/A")
+        
+    if not history_df.empty and "User_UID" in history_df.columns:
+        user_history = history_df[history_df["User_UID"] == user_uid]
+    else:
+        user_history = pd.DataFrame(columns=history_df.columns)
+        
+    total_processed = len(user_history)
+    approved_count = len(user_history[user_history["Decision"] == "APPROVED"])
+    rejected_count = len(user_history[user_history["Decision"] == "REJECTED"])
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -821,7 +1194,7 @@ with tab1:
     with col3:
         st.markdown(f'<div class="metric-card rejected"><div class="metric-title">❌ rejected applications</div><div class="metric-value">{rejected_count:,}</div></div>', unsafe_allow_html=True)
     with col4:
-        rate = (approved_count / total_processed * 100) if total_processed > 0 else 70.3
+        rate = (approved_count / total_processed * 100) if total_processed > 0 else 0.0
         st.markdown(f'<div class="metric-card"><div class="metric-title">📈 average approval rate</div><div class="metric-value">{rate:.1f}%</div></div>', unsafe_allow_html=True)
         
     st.markdown("<br/>", unsafe_allow_html=True)
@@ -830,32 +1203,24 @@ with tab1:
     with gcol1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("📍 Regional Activity Heatmap")
-        if not history_df.empty and "District" in history_df.columns:
-            dist_counts = history_df["District"].value_counts().reset_index()
+        if not user_history.empty and "District" in user_history.columns:
+            dist_counts = user_history["District"].value_counts().reset_index()
             dist_counts.columns = ["District", "Applications"]
             st.bar_chart(dist_counts.set_index("District"))
         else:
-            mock_dist = pd.DataFrame({
-                "District": ["Bengaluru Urban", "Hyderabad", "Mumbai Suburban", "Chennai", "Pune", "Rangareddy", "Coimbatore"],
-                "Applications": [420, 310, 245, 185, 140, 110, 95]
-            })
-            st.bar_chart(mock_dist.set_index("District"), color="#0284c7")
+            st.info("ℹ️ No regional evaluation data available for this account.")
         st.markdown("</div>", unsafe_allow_html=True)
         
     with gcol2:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("⚖️ Risk Score Distribution")
-        if not history_df.empty and "Risk_Score" in history_df.columns:
-            risk_series = history_df["Risk_Score"]
+        if not user_history.empty and "Risk_Score" in user_history.columns:
+            risk_series = user_history["Risk_Score"]
             hist_vals, bin_edges = np.histogram(risk_series, bins=10, range=(0, 100))
             chart_data = pd.DataFrame(hist_vals, index=bin_edges[:-1], columns=["Risk Scores"])
             st.area_chart(chart_data)
         else:
-            mock_risk = np.random.normal(loc=45, scale=18, size=1000)
-            mock_risk = np.clip(mock_risk, 5, 95)
-            hist_vals, bin_edges = np.histogram(mock_risk, bins=10)
-            chart_data = pd.DataFrame(hist_vals, index=[int(x) for x in bin_edges[:-1]], columns=["Risk Scores"])
-            st.area_chart(chart_data, color="#38bdf8")
+            st.info("ℹ️ No risk score evaluation data available for this account.")
         st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -871,7 +1236,30 @@ with tab2:
         
         state = st.selectbox("State", ["Karnataka", "Telangana", "Maharashtra", "Tamil Nadu", "Other"])
         
-        if state in GEO_DB:
+        taluk = None
+        if state == "Karnataka":
+            from utils.valuation_module import get_db_districts, get_db_taluks, get_db_villages
+            
+            # Fetch districts dynamically
+            district_list = get_db_districts()
+            if not district_list:
+                district_list = ["Bagalkote", "Bangalore Rural", "Basavangudi", "Belagavi", "Mysore", "Ramanagara"]
+                
+            district = st.selectbox("District", district_list)
+            
+            # Fetch taluks dynamically
+            taluk_list = get_db_taluks(district)
+            if not taluk_list:
+                taluk_list = ["Badami", "Devanahalli", "Basavanagudi", "Sirsi", "Humnabad"]
+            taluk = st.selectbox("Taluk / Sub-Registrar Office", taluk_list)
+            
+            # Fetch villages dynamically
+            village_list = get_db_villages(district, taluk)
+            if not village_list:
+                village_list = ["Adagallu", "Kyada", "Ananthagiri", "Katharaki"]
+            village = st.selectbox("Village / Layout / Road", village_list)
+            
+        elif state in GEO_DB:
             district_list = list(GEO_DB[state]["districts"].keys())
             district = st.selectbox("District", district_list)
             village_list = GEO_DB[state]["districts"][district]["villages"]
@@ -886,6 +1274,7 @@ with tab2:
         # Land details
         land_area = st.number_input("Land Area (Sq Ft)", min_value=100, value=2400)
         land_type = st.selectbox("Land Classification", ["Residential", "Commercial", "Agricultural", "Industrial"])
+        land_price = st.number_input("Land Price (₹) [Optional]", min_value=0, value=0, step=1000, help="If the price is less than 60,000, it will be considered as rate per sqft. Otherwise, it will be considered as the total land price.")
         
         st.markdown("---")
         # Heuristics for home & depreciated curves
@@ -914,13 +1303,56 @@ with tab2:
         st.subheader("🗺️ Interactive Land Boundaries (Leaflet Map)")
         st.markdown("<p class='map-instruction'>Click anywhere on the map to pin the land boundaries and capture coordinates.</p>", unsafe_allow_html=True)
         
-        lat, lon = 12.9716, 77.5946
-        if state in coordinate_db and district in coordinate_db[state]:
-            lat, lon = coordinate_db[state][district]
-            
+        # Check if address changed to trigger map re-centering
+        current_loc_key = f"{state}_{district}_{taluk}_{village}"
+        if "last_loc_key" not in st.session_state or st.session_state["last_loc_key"] != current_loc_key:
+            st.session_state["last_loc_key"] = current_loc_key
+            if state == "Karnataka":
+                from utils.valuation_module import geocode_address
+                coords = geocode_address(state, district, taluk, village)
+                if coords:
+                    st.session_state["map_center"] = coords
+            elif state in coordinate_db and district in coordinate_db[state]:
+                st.session_state["map_center"] = coordinate_db[state][district]
+            else:
+                st.session_state["map_center"] = (12.9716, 77.5946)
+                
+        lat, lon = st.session_state.get("map_center", (12.9716, 77.5946))
+        
         m = folium.Map(location=[lat, lon], zoom_start=14)
         m.add_child(folium.LatLngPopup())
         
+        # Add marker for valued property if exists
+        if "valued_property" in st.session_state:
+            vp = st.session_state["valued_property"]
+            vp_lat = vp.get("Latitude", lat)
+            vp_lon = vp.get("Longitude", lon)
+            
+            popup_html = f"""
+            <div style="font-family: 'Outfit', 'Inter', sans-serif; width: 280px; padding: 10px; border-radius: 8px;">
+                <h4 style="margin: 0 0 10px; color: #0284c7; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; font-size: 14px;">🏠 Collateral Valuation Details</h4>
+                <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">District</td><td style="text-align: right;">{vp['District']}</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">Village/Area</td><td style="text-align: right;">{vp['Village']}</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">Survey No</td><td style="text-align: right;">{vp['Survey_Number']}</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">Property Type</td><td style="text-align: right;">{vp['property_class']}</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">Guideline Value</td><td style="text-align: right;">₹{vp['guidance_value_per_sqft']:,}/sqft</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0;">Total Area</td><td style="text-align: right;">{vp['Land_Area']:,} sqft</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0; color: #0369a1;">AI Market Value</td><td style="text-align: right; font-weight: 700; color: #0369a1;">₹{vp['total_market_value']:,}</td></tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="font-weight: 600; padding: 4px 0; color: #b45309;">AI Risk Status</td><td style="text-align: right; font-weight: 700; color: #b45309;">{vp['fraud_check']['status']}</td></tr>
+                    <tr><td style="font-weight: 600; padding: 4px 0; color: #15803d;">Max Eligible Loan</td><td style="text-align: right; font-weight: 700; color: #15803d;">₹{vp['max_loan_amount']:,}</td></tr>
+                </table>
+            </div>
+            """
+            iframe = folium.IFrame(html=popup_html, width=310, height=260)
+            popup = folium.Popup(iframe, max_width=330)
+            folium.Marker(
+                [vp_lat, vp_lon],
+                popup=popup,
+                tooltip="Click to view full property appraisal details",
+                icon=folium.Icon(color="blue", icon="info-sign")
+            ).add_to(m)
+            
         map_data = st_folium(m, width="100%", height=400, key="app_folium_map_main")
         
         clicked_lat, clicked_lon = lat, lon
@@ -954,13 +1386,15 @@ with tab2:
                 try:
                     valuation_res = calculate_valuation(
                         state, district, village, pincode, survey_number, land_area, land_type, 
-                        clicked_lat, clicked_lon, property_class, built_up_area, building_age, construction_quality
+                        clicked_lat, clicked_lon, property_class, built_up_area, building_age, construction_quality,
+                        land_price=land_price, taluk=taluk
                     )
                     
                     # Save in session state for loan prediction
                     st.session_state["valued_property"] = {
                         "State": state,
                         "District": district,
+                        "Taluk": taluk,
                         "Village": village,
                         "PIN_Code": pincode,
                         "Survey_Number": survey_number,
@@ -1130,6 +1564,13 @@ with tab3:
                 st.stop()
 
         with st.spinner("Extracting parameters with OCR engines..."):
+            # Lazy load heavy document verification modules to save memory
+            from utils.ocr_engine import process_dossier_file
+            from utils.verification_engine import (
+                verify_identity_dossier, verify_income_dossier, verify_property_dossier,
+                verify_cashflow_stability, conduct_fraud_brain_audit,
+                calculate_document_trust_score
+            )
             
             # Record timeline steps dynamically using WorldTimeAPI
             t_upload_details = get_network_time_details()
@@ -1353,6 +1794,15 @@ with tab3:
                 }
             }
             
+            # Clear intermediate variables and run gc.collect() to prevent OOM
+            try:
+                del identity_res, income_res, property_res, cashflow_res, fraud_res, timeline_logs
+            except Exception:
+                pass
+            import gc
+            gc.collect()
+            log_memory_usage("After OCR Document Audit")
+            
             st.success("🎉 OCR Document Audit Complete! Trust Score calculated.")
             st.rerun()
             
@@ -1399,7 +1849,7 @@ with tab3:
             ) * 100) if not dv["ocr_data"].get("aadhaar", {}).get("Missing") and not dv["ocr_data"].get("pan", {}).get("Missing") else 0
             if name_similarity == 0:
                 name_similarity = 98
-            pan_verification = 100 if dv["identity"]["Status"] == "PASS" else 85
+            pan_verification = 100 if dv.get("identity", {}).get("Name_Status") == "PASS" else 85
             property_match = int(levenshtein_ratio(
                 dv["ocr_data"].get("sale_deed", {}).get("Owner", "").lower(),
                 dv["ocr_data"].get("aadhaar", {}).get("Name", "").lower()
@@ -1683,6 +2133,19 @@ with tab4:
                 st.stop()
                 
             with st.spinner("Analyzing credit parameters, pricing debt, and querying Groq AI Underwriter..."):
+                # Lazy load heavy underwriting modules to save memory
+                from utils.risk_engine import calculate_aegis_risk
+                from utils.ai_explainer import generate_ai_underwriting_report
+                from utils.pdf_generator import generate_pdf
+                from utils.verification_engine import (
+                    verify_identity_dossier, verify_income_dossier, verify_property_dossier,
+                    verify_cashflow_stability, conduct_fraud_brain_audit,
+                    calculate_document_trust_score
+                )
+                
+                from utils.model_loader import get_loan_model
+                loan_model = get_loan_model()
+                log_memory_usage("Starting Loan Underwriting Prediction")
                 
                 # Fetch prediction lifecycle timestamps using WorldTimeAPI
                 t_risk_details = get_network_time_details()
@@ -1912,6 +2375,15 @@ with tab4:
                 }
                 save_to_history(history_record)
                 
+                # Clear intermediate variables and run gc.collect() to prevent OOM
+                try:
+                    del identity_res, income_res, property_res, cashflow_res, fraud_res, ai_report, underwriting_timeline, history_record
+                except Exception:
+                    pass
+                import gc
+                gc.collect()
+                log_memory_usage("After Loan Underwriting Prediction")
+                
                 st.success("🎉 Underwriting Predict Evaluation Complete! Decision matrix logged.")
                 st.rerun()
                 
@@ -2068,7 +2540,7 @@ with tab4:
                 ) * 100) if not dv.get("ocr_data", {}).get("aadhaar", {}).get("Missing") and not dv.get("ocr_data", {}).get("pan", {}).get("Missing") else 0
                 if name_similarity == 0:
                     name_similarity = 98
-                pan_verification = 100 if dv.get("identity", {}).get("Status") == "PASS" else 85
+                pan_verification = 100 if dv.get("identity", {}).get("Name_Status") == "PASS" else 85
                 property_match = int(levenshtein_ratio(
                     dv.get("ocr_data", {}).get("sale_deed", {}).get("Owner", "").lower(),
                     dv.get("ocr_data", {}).get("aadhaar", {}).get("Name", "").lower()
@@ -2160,12 +2632,21 @@ with tab4:
 with tab5:
     st.markdown("<div class='section-header'>📜 VALUATION & DECISION PORTAL LOGS</div>", unsafe_allow_html=True)
     
-    fresh_history_df = load_history()
-    if fresh_history_df.empty:
+    # Filter stats by the logged-in user's UID (different employee has different stats)
+    user_uid = "N/A"
+    if "user" in st.session_state:
+        user_uid = st.session_state["user"].get("uid", "N/A")
+        
+    if not history_df.empty and "User_UID" in history_df.columns:
+        user_fresh_history = history_df[history_df["User_UID"] == user_uid]
+    else:
+        user_fresh_history = pd.DataFrame(columns=history_df.columns)
+        
+    if user_fresh_history.empty:
         st.info("No applications evaluated yet. History logs will populate automatically once you process values and loans.")
     else:
         st.dataframe(
-            fresh_history_df,
+            user_fresh_history,
             column_config={
                 "Market_Value": st.column_config.NumberColumn("Estimated Market Value", format="₹%,.2f"),
                 "Circle Guidance Value": st.column_config.NumberColumn("Circle Guidance Value", format="₹%,.2f"),
@@ -2179,7 +2660,11 @@ with tab5:
         )
         
         if st.button("Clear Logs / Reset Portal History"):
-            if os.path.exists(HISTORY_FILE):
-                os.remove(HISTORY_FILE)
+            if not history_df.empty and "User_UID" in history_df.columns:
+                # Remove only this user's records from the CSV file
+                updated_history_df = history_df[history_df["User_UID"] != user_uid]
+                updated_history_df.to_csv(HISTORY_FILE, index=False)
             st.success("Portal history reset successfully. Reloading...")
+            import time
+            time.sleep(1)
             st.rerun()

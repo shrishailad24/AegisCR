@@ -42,7 +42,7 @@ def train_models():
     # Pipeline
     val_pipeline = Pipeline([
         ("preprocessor", val_preprocessor),
-        ("regressor", RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1))
+        ("regressor", RandomForestRegressor(n_estimators=50, max_depth=10, min_samples_leaf=4, random_state=42, n_jobs=-1))
     ])
     
     print("Training Valuation Model...")
@@ -101,7 +101,7 @@ def train_models():
     # Pipeline
     loan_pipeline = Pipeline([
         ("preprocessor", loan_preprocessor),
-        ("classifier", RandomForestClassifier(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1))
+        ("classifier", RandomForestClassifier(n_estimators=60, max_depth=10, min_samples_leaf=4, random_state=42, n_jobs=-1))
     ])
     
     print("Training Loan Approval Model...")

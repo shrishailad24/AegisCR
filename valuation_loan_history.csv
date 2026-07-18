@@ -1,5 +1,2 @@
-Reference_No,Date,Customer_Name,State,District,Village,PIN_Code,Survey_Number,Land_Area,Land_Type,Market_Value,Guidance_Value,Loan_Amount,LTV_Ratio,DTI_Ratio,Risk_Score,Decision
-LN423325,17-07-2026,Rajesh Kumar (Secured),Karnataka,Bengaluru Urban,Whitefield,560066,101/2,2400,Residential,27559200,8400000,19291440,0.7,1.578,93.3,REJECTED
-LN742163,17-07-2026,Rajesh Kumar (Secured),Karnataka,Bengaluru Urban,Whitefield,560066,101/2,2400,Residential,27559200,8400000,19291440,0.7,1.578,46.3,APPROVED
-LN173313,17-07-2026,Rajesh Kumar (Secured),Karnataka,Bengaluru Urban,Whitefield,560066,101/2,2400,Residential,27559200,8400000,19291440,0.7,1.578,46.3,APPROVED
-LN161077,17-07-2026,Rajesh Kumar (Secured),Karnataka,Bengaluru Urban,Whitefield,560066,101/2,2400,Residential,27559200,8400000,19291440,0.7,1.578,93.3,REJECTED
+Reference_No,Date,Customer_Name,State,District,Village,PIN_Code,Survey_Number,Land_Area,Land_Type,Market_Value,Guidance_Value,Loan_Amount,LTV_Ratio,DTI_Ratio,Risk_Score,Decision,User_UID
+LN813686,19-07-2026,Rajesh Kumar (Secured),Karnataka,Bagalkote,"113, 113¥sÀ",560066,101/2,2400,Residential,1927200,400800,1349040,0.7,0.11,63.8,REJECTED,E1An7DK4NFVUUVih7mqZzc6xTuZ2

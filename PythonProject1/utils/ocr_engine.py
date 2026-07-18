@@ -1,20 +1,20 @@
-import fitz  # PyMuPDF
 import re
 import os
 import random
-from google.cloud import vision
 
 def extract_raw_text(file_path):
     """
-    Extracts raw text from a PDF file using local PyMuPDF.
+    Extracts raw text from a PDF file using local PyMuPDF, limited to 3 pages.
     """
     if not file_path.lower().endswith(".pdf"):
         return ""
     try:
+        import fitz  # Lazy load PyMuPDF
         text = ""
         with fitz.open(file_path) as doc:
-            for page in doc:
-                text += page.get_text()
+            # Constrain raw extraction to first 3 pages to reduce memory footprint
+            for i in range(min(len(doc), 3)):
+                text += doc[i].get_text()
         return text
     except Exception as e:
         print(f"Error reading PDF with PyMuPDF: {e}")
@@ -32,6 +32,10 @@ def extract_vision_ocr_text(file_path):
         return extract_raw_text(file_path)
         
     try:
+        from google.cloud import vision  # Lazy load Vision API
+        import fitz  # Lazy load PyMuPDF
+        import gc
+        
         client = vision.ImageAnnotatorClient()
         text = ""
         
@@ -40,21 +44,45 @@ def extract_vision_ocr_text(file_path):
                 # Limit to first 3 pages to maintain fast API response and keep costs low
                 for i in range(min(len(doc), 3)):
                     page = doc[i]
-                    pix = page.get_pixmap(dpi=150)
+                    # Lower DPI from 150 to 120 to significantly reduce image memory footprint
+                    pix = page.get_pixmap(dpi=120)
                     img_bytes = pix.tobytes("png")
                     image = vision.Image(content=img_bytes)
                     response = client.document_text_detection(image=image)
                     if response.full_text_annotation and response.full_text_annotation.text:
                         text += response.full_text_annotation.text + "\n"
+                    
+                    # Page-by-page memory release
+                    del pix, img_bytes, image, response
+                    gc.collect()
             return text
         else:
-            with open(file_path, "rb") as f:
-                content = f.read()
+            # Image file: Resize image before OCR to optimize memory footprint
+            from PIL import Image as PILImage
+            import io
+            
+            with PILImage.open(file_path) as img:
+                # Max dimension constraint to reduce raw memory utilization
+                max_size = 1200
+                if img.width > max_size or img.height > max_size:
+                    img.thumbnail((max_size, max_size))
+                
+                # Save to bytes stream with JPEG compression
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format="JPEG", quality=85)
+                content = img_byte_arr.getvalue()
+                
             image = vision.Image(content=content)
             response = client.document_text_detection(image=image)
+            
+            detected_text = ""
             if response.full_text_annotation and response.full_text_annotation.text:
-                return response.full_text_annotation.text
-            return ""
+                detected_text = response.full_text_annotation.text
+                
+            # Free memory
+            del img_byte_arr, content, image, response
+            gc.collect()
+            return detected_text
     except Exception as e:
         print(f"Google Vision API call failed: {e}. Falling back to PyMuPDF raw extractor...")
         return extract_raw_text(file_path)

@@ -3,6 +3,8 @@ import pickle
 import hashlib
 import pandas as pd
 import numpy as np
+import sqlite3
+import streamlit as st
 
 # Database matching generate_dataset.py
 GEO_DB = {
@@ -123,32 +125,236 @@ def get_hashed_rate(state, district, village, pincode, land_type):
     
     return guidance, market_mult, growth
 
-def get_property_rates(state, district, village, pincode, land_type):
-    # 1. Check GEO_DB
-    state_match = GEO_DB.get(state)
-    if state_match:
-        dist_match = state_match["districts"].get(district)
-        if dist_match:
-            base_guidance = dist_match["base_guidance"]
-            market_mult = dist_match["market_multiplier"]
-            growth_rate = dist_match["growth_rate"]
+def lookup_db_guideline(district, taluk, village, land_type, survey_number=None):
+    if not district or not village:
+        return None
+        
+    db_paths = [
+        os.path.join(os.path.dirname(__file__), "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "PythonProject1", "guidelines.db"),
+        "guidelines.db",
+        "PythonProject1/guidelines.db"
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
             
-            # Apply area modifier for land type
-            type_multipliers = {
-                "Residential": 1.0,
-                "Commercial": 1.5,
-                "Agricultural": 0.4,
-                "Industrial": 1.1
-            }
-            mult = type_multipliers.get(land_type, 1.0)
-            guidance = int(base_guidance * mult)
-            return guidance, market_mult, growth_rate
+    if not db_path:
+        return None
+        
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        rows = []
+        # 0. Try to match by survey number if provided
+        if survey_number:
+            import re
+            clean_survey = re.sub(r'[^\d/\-]', '', survey_number)
+            if len(clean_survey) > 1:
+                cursor.execute("""
+                    SELECT rate_per_sqft, property_classification, original_unit
+                    FROM guidelines
+                    WHERE (district LIKE ? OR taluk_office LIKE ?) AND village_area LIKE ?
+                """, (f"%{district}%", f"%{district}%", f"%{clean_survey}%"))
+                rows = cursor.fetchall()
+                
+        # 1. Try precise match with taluk and village
+        if not rows:
+            t_query = f"%{taluk}%" if taluk else "%"
+            cursor.execute("""
+                SELECT rate_per_sqft, property_classification, original_unit
+                FROM guidelines
+                WHERE (district LIKE ? OR taluk_office LIKE ?) AND (taluk_office LIKE ? OR ?) AND village_area LIKE ?
+            """, (f"%{district}%", f"%{district}%", t_query, taluk is None, f"%{village}%"))
+            rows = cursor.fetchall()
+        
+        # 2. Fallback to just district and village
+        if not rows:
+            cursor.execute("""
+                SELECT rate_per_sqft, property_classification, original_unit
+                FROM guidelines
+                WHERE (district LIKE ? OR taluk_office LIKE ?) AND village_area LIKE ?
+            """, (f"%{district}%", f"%{district}%", f"%{village}%"))
+            rows = cursor.fetchall()
+            
+        # 3. Fallback to district and taluk average
+        if not rows:
+            cursor.execute("""
+                SELECT rate_per_sqft, property_classification, original_unit
+                FROM guidelines
+                WHERE district LIKE ? OR taluk_office LIKE ?
+            """, (f"%{district}%", f"%{district}%"))
+            rows = cursor.fetchall()
+            
+        if not rows:
+            conn.close()
+            return None
+            
+        # Classify rows to find the best match for land_type
+        best_rate = None
+        for r_item in rows:
+            rate = r_item[0]
+            classification = r_item[1]
+            if rate is None or not classification:
+                continue
+            cls_lower = str(classification).lower()
+            if land_type == "Agricultural" and any(k in cls_lower for k in ["dry", "soil", "wet", "bagayat"]):
+                best_rate = float(rate)
+                break
+            elif land_type == "Residential" and any(k in cls_lower for k in ["residential", "gramathana", "approved", "site"]):
+                best_rate = float(rate)
+                break
+            elif land_type == "Commercial" and any(k in cls_lower for k in ["commercial", "approved", "residential", "site"]):
+                best_rate = float(rate) * 1.5
+                break
+            elif land_type == "Industrial" and any(k in cls_lower for k in ["industrial", "approved", "residential", "site"]):
+                best_rate = float(rate) * 1.1
+                break
+                
+        if best_rate is None:
+            valid_rates = [float(r[0]) for r in rows if r[0] is not None]
+            if valid_rates:
+                best_rate = sum(valid_rates) / len(valid_rates)
+            else:
+                best_rate = 0.0
+            
+        conn.close()
+        return int(best_rate)
+    except Exception as e:
+        print(f"[ERROR] Database query failed: {e}")
+        return None
 
-    # 2. Fallback to hashing
-    return get_hashed_rate(state, district, village, pincode, land_type)
+@st.cache_data
+def get_db_districts():
+    db_paths = [
+        os.path.join(os.path.dirname(__file__), "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "PythonProject1", "guidelines.db"),
+        "guidelines.db",
+        "PythonProject1/guidelines.db"
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
+    if not db_path:
+        return []
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT district FROM guidelines ORDER BY district")
+        districts = [r[0] for r in cursor.fetchall() if r[0]]
+        conn.close()
+        return districts
+    except Exception:
+        return []
+
+@st.cache_data
+def get_db_taluks(district):
+    db_paths = [
+        os.path.join(os.path.dirname(__file__), "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "PythonProject1", "guidelines.db"),
+        "guidelines.db",
+        "PythonProject1/guidelines.db"
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
+    if not db_path:
+        return []
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT taluk_office FROM guidelines WHERE district = ? ORDER BY taluk_office", (district,))
+        taluks = [r[0] for r in cursor.fetchall() if r[0]]
+        conn.close()
+        return taluks
+    except Exception:
+        return []
+
+@st.cache_data
+def get_db_villages(district, taluk):
+    db_paths = [
+        os.path.join(os.path.dirname(__file__), "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "guidelines.db"),
+        os.path.join(os.path.dirname(__file__), "..", "PythonProject1", "guidelines.db"),
+        "guidelines.db",
+        "PythonProject1/guidelines.db"
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
+    if not db_path:
+        return []
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT village_area FROM guidelines WHERE district = ? AND taluk_office = ? ORDER BY village_area", (district, taluk))
+        raw_villages = [r[0] for r in cursor.fetchall() if r[0]]
+        conn.close()
+        
+        # Filter out survey-number-only descriptions to keep dropdowns clean
+        import re
+        filtered_villages = []
+        for v in raw_villages:
+            # If it is purely digits, dashes, spaces, slashes, commas, dots, and pipes, skip it!
+            if re.match(r'^[\d\s\-\|.,/()\\\[\]]+$', v):
+                continue
+            filtered_villages.append(v)
+            
+        if not filtered_villages:
+            return raw_villages
+        return filtered_villages
+    except Exception:
+        return []
+
+def get_property_rates(state, district, village, pincode, land_type, taluk=None, survey_number=None):
+    # 1. Query Kaveri DB if state is Karnataka
+    if state == "Karnataka":
+        db_rate = lookup_db_guideline(district, taluk, village, land_type, survey_number=survey_number)
+        if db_rate is not None:
+            # Multiplier and growth rates fallback
+            market_mult = 2.5 if land_type == "Residential" else (3.0 if land_type == "Commercial" else 1.5)
+            growth_rate = 0.12 if land_type == "Residential" else (0.15 if land_type == "Commercial" else 0.06)
+            return db_rate, market_mult, growth_rate
+
+    # 2. Check GEO_DB
+    if state and district:
+        state_match = GEO_DB.get(state)
+        if state_match:
+            dist_match = state_match["districts"].get(district)
+            if dist_match:
+                base_guidance = dist_match["base_guidance"]
+                market_mult = dist_match["market_multiplier"]
+                growth_rate = dist_match["growth_rate"]
+                
+                # Apply area modifier for land type
+                type_multipliers = {
+                    "Residential": 1.0,
+                    "Commercial": 1.5,
+                    "Agricultural": 0.4,
+                    "Industrial": 1.1
+                }
+                mult = type_multipliers.get(land_type or "Residential", 1.0)
+                guidance = int(base_guidance * mult)
+                return guidance, market_mult, growth_rate
+
+    # 3. Fallback to hashing
+    return get_hashed_rate(state or "", district or "", village or "", pincode or "", land_type or "Residential")
 
 def calculate_valuation(state, district, village, pincode, survey_number, land_area, land_type, lat, lon,
-                        property_class="Land only", built_up_area=0, building_age=0, construction_quality="Standard"):
+                        property_class="Land only", built_up_area=0, building_age=0, construction_quality="Standard",
+                        land_price=0.0, taluk=None):
     print("Starting property valuation process...")
     
     # Input validation checks
@@ -160,7 +366,9 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
         raise ValueError("Village/Layout name is missing.")
     if not survey_number or not survey_number.strip():
         raise ValueError("Survey/Khata number is missing.")
-    if land_area is None or land_area <= 0:
+    if land_area is None:
+        raise ValueError("Land area must be specified.")
+    if land_area <= 0:
         raise ValueError("Land area must be a positive number greater than 0.")
     if not land_type or not land_type.strip():
         raise ValueError("Land type must be specified (e.g. Residential, Commercial).")
@@ -171,18 +379,17 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
     
     # Lookup guidance rates
     print("Looking up guidance rates and market multiplier indices...")
-    guidance_per_sqft, market_mult, growth_rate = get_property_rates(state, district, village, pincode, land_type)
-    print(f"Guidance rate found: ₹{guidance_per_sqft}/sqft, Multiplier: {market_mult}, Projected growth: {growth_rate*100}%")
+    guidance_per_sqft, market_mult, growth_rate = get_property_rates(state, district, village, pincode, land_type, taluk=taluk, survey_number=survey_number)
+    print(f"Guidance rate found: Rs. {guidance_per_sqft}/sqft, Multiplier: {market_mult}, Projected growth: {growth_rate*100}%")
     
     # Use ML model if exists, otherwise fallback to mathematical formulation
     market_per_sqft = int(guidance_per_sqft * market_mult)
     
     print("Loading valuation model...")
-    if os.path.exists("valuation_model.pkl"):
+    from utils.model_loader import get_valuation_model
+    val_model = get_valuation_model()
+    if val_model is not None:
         try:
-            with open("valuation_model.pkl", "rb") as f:
-                val_model = pickle.load(f)
-            print("Valuation model loaded successfully.")
                 
             input_df = pd.DataFrame([{
                 "State": state,
@@ -208,7 +415,16 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
     else:
         print("Valuation model .pkl file not found on server, using fallback guidance formula.")
             
-    land_market_value = market_per_sqft * land_area
+    # Apply land price override logic if specified
+    if land_price > 0:
+        if land_price < 60000:
+            market_per_sqft = int(land_price)
+            land_market_value = int(market_per_sqft * land_area)
+        else:
+            land_market_value = int(land_price)
+            market_per_sqft = int(land_price / land_area) if land_area > 0 else 0
+    else:
+        land_market_value = market_per_sqft * land_area
     
     # Home / Building Valuation
     building_market_value = 0
@@ -281,7 +497,7 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
     }
     eligible_ltv = ltv_limits.get(land_type, 0.70)
     max_loan_amount = int(total_market_value * eligible_ltv)
-    print(f"Property valuation completed successfully. Market value: ₹{total_market_value}, Guidance value: ₹{total_guidance_value}")
+    print(f"Property valuation completed successfully. Market value: Rs. {total_market_value}, Guidance value: Rs. {total_guidance_value}")
     return {
         "guidance_value_per_sqft": guidance_per_sqft,
         "total_guidance_value": total_guidance_value,
@@ -312,3 +528,70 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
         "construction_cost_sqft": construction_cost_sqft,
         "depreciated_factor": depreciated_factor
     }
+
+def geocode_address(state, district, taluk=None, village=None):
+    import requests
+    import re
+    
+    karnataka_coords = {
+        "Bagalkote": [16.1813, 75.6961],
+        "Bangalore Rural": [13.2925, 77.5500],
+        "Bangalore Urban": [12.9716, 77.5946],
+        "Belagavi": [15.8497, 74.4977],
+        "Bellary": [15.1394, 76.9214],
+        "Bidar": [17.9104, 77.5199],
+        "Chamarajanagar": [11.9261, 76.9402],
+        "Chikkaballapura": [13.4354, 77.7277],
+        "Chikkamagalur": [13.3161, 75.7720],
+        "Chitradurga": [14.2300, 76.4000],
+        "Davangere": [14.4644, 75.9218],
+        "Dharwad": [15.4589, 75.0078],
+        "Gadag": [15.4267, 75.6267],
+        "Gulbarga": [17.3291, 76.8341],
+        "Hassan": [13.0072, 76.1026],
+        "Haveri": [14.7954, 75.3995],
+        "Karwar": [14.8093, 74.1300],
+        "Kodagu": [12.2681, 75.7381],
+        "Kolar": [13.1373, 78.1345],
+        "Koppal": [15.3484, 76.1554],
+        "Mandya": [12.5218, 76.8951],
+        "Mangalore": [12.9141, 74.8560],
+        "Mysore": [12.2958, 76.6394],
+        "Raichur": [16.2120, 77.3550],
+        "Ramanagara": [12.7150, 77.2813],
+        "Shimoga": [13.9299, 75.5681],
+        "Tumkur": [13.3379, 77.1173],
+        "Udupi": [13.3409, 74.7421],
+        "Vijayapura": [16.8302, 75.7100],
+        "Yadagiri": [16.7667, 77.1333]
+    }
+    
+    fallback_coord = [12.9716, 77.5946] # Bengaluru default
+    if state == "Karnataka":
+        for k_dist, k_coords in karnataka_coords.items():
+            if district and (district.lower() in k_dist.lower() or k_dist.lower() in district.lower()):
+                fallback_coord = k_coords
+                break
+                
+    if not district or not state:
+        return fallback_coord
+        
+    if village or taluk:
+        clean_village = ""
+        if village:
+            parts = village.split("|")
+            clean_village = parts[-1].strip() if parts else village
+            clean_village = re.sub(r'[\d/\-]', '', clean_village).strip()
+            
+        search_query = f"{clean_village or taluk or ''}, {district}, {state}, India"
+        try:
+            headers = {"User-Agent": "AegisCR-Valuation-App/1.0"}
+            url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_query)}&format=json&limit=1"
+            r = requests.get(url, headers=headers, timeout=2)
+            if r.status_code == 200 and r.json():
+                data = r.json()[0]
+                return float(data["lat"]), float(data["lon"])
+        except Exception:
+            pass
+            
+    return fallback_coord
