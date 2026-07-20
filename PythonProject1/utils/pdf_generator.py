@@ -254,3 +254,124 @@ def generate_pdf(name, gender, married, dependents, education,
     doc.build(content)
     
     return file_path
+
+def generate_gold_pdf(name, weight, purity, rate_per_gram, gold_value, eligible_loan, interest_rate=9.5, tenure=12, officer_notes=""):
+    os.makedirs("assets/generated_letters", exist_ok=True)
+    file_path = f"assets/generated_letters/{name.replace(' ', '_')}_gold_sanction_report.pdf"
+    
+    doc = SimpleDocTemplate(
+        file_path,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    styles = getSampleStyleSheet()
+    primary_color = colors.HexColor("#78350f") # Amber / Gold Theme Primary
+    secondary_color = colors.HexColor("#d97706") # Goldenrod
+    
+    styles['Title'].fontSize = 15
+    styles['Title'].textColor = primary_color
+    styles['Title'].spaceAfter = 8
+    
+    styles['Heading2'].fontSize = 10.5
+    styles['Heading2'].textColor = secondary_color
+    styles['Heading2'].spaceBefore = 8
+    styles['Heading2'].spaceAfter = 4
+    
+    styles['Normal'].fontSize = 8.5
+    styles['Normal'].leading = 11.0
+    
+    ref_no = f"AEGIS-GOLD-{random.randint(100000,999999)}"
+    date_today = datetime.now().strftime("%d-%m-%Y")
+    
+    content = []
+    
+    # ================= HEADER =================
+    header_data = [
+        [Paragraph(f"<b>🛡️ AegisCR DECISION PLATFORM</b><br/>AI Gold Appraisal & Loan Valuation Certificate", styles["Normal"]),
+         Paragraph(f"<b>Appraisal Ref:</b> {ref_no}<br/><b>Audit Date:</b> {date_today}", styles["Normal"])]
+    ]
+    header_table = Table(header_data, colWidths=[320, 220])
+    header_table.setStyle(TableStyle([
+        ('LINEBELOW', (0,0), (-1,-1), 1.5, secondary_color),
+        ('PADDING', (0,0), (-1,-1), 4),
+        ('VALIGN', (0,0), (-1,-1), 'BOTTOM')
+    ]))
+    content.append(header_table)
+    content.append(Spacer(1, 10))
+    
+    # Title
+    content.append(Paragraph("<b>GOLD COLLATERAL APPRAISAL & SANCTION LETTER</b>", styles["Title"]))
+    content.append(Paragraph("This document certifies that the collateral gold asset described below has been dynamically appraised using live market indexes and is eligible for a credit facility under RBI LTV guidelines.", styles["Normal"]))
+    content.append(Spacer(1, 10))
+    
+    # ================= 1. APPLICANT DETAILS =================
+    content.append(Paragraph("<b>👤 APPLICANT INFORMATION</b>", styles["Heading2"]))
+    applicant_data = [
+        ["Applicant Name", name, "Appraisal Date", date_today],
+        ["Collateral Type", "Gold Bullion/Ornaments", "Facility Type", "Gold Bullet Loan"]
+    ]
+    applicant_table = Table(applicant_data, colWidths=[120, 150, 120, 150])
+    applicant_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 4),
+    ]))
+    content.append(applicant_table)
+    content.append(Spacer(1, 10))
+    
+    # ================= 2. COLLATERAL APPRAISAL DETAILS =================
+    content.append(Paragraph("<b>🪙 GOLD COLLATERAL VALUE ANALYSIS</b>", styles["Heading2"]))
+    collateral_data = [
+        ["Gold Weight (grams)", f"{weight} g", "Purity Grade", purity],
+        ["Live Price per Gram", f"₹{rate_per_gram:,.2f}", "Total Market Value", f"₹{gold_value:,.2f}"],
+        ["LTV Cap Ratio", "75% (RBI Limit)", "Eligible Loan Ceiling", f"₹{eligible_loan:,.2f}"]
+    ]
+    collateral_table = Table(collateral_data, colWidths=[130, 140, 130, 140])
+    collateral_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('BACKGROUND', (3,1), (3,1), colors.HexColor("#fffbeb")),
+        ('BACKGROUND', (3,2), (3,2), colors.HexColor("#ecfdf5")),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    content.append(collateral_table)
+    content.append(Spacer(1, 10))
+    
+    # ================= 3. CREDIT TERMS =================
+    content.append(Paragraph("<b>💳 PROPOSED LOAN TERMS</b>", styles["Heading2"]))
+    loan_data = [
+        ["Approved Loan Amount", f"₹{eligible_loan:,.2f}", "Annual Interest Rate", f"{interest_rate}%"],
+        ["Loan Tenure", f"{tenure} Months", "Repayment Frequency", "Bullet Payment (Principal + Interest)"]
+    ]
+    loan_table = Table(loan_data, colWidths=[130, 140, 130, 140])
+    loan_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    content.append(loan_table)
+    content.append(Spacer(1, 10))
+    
+    # ================= 4. APPRAISER FIELD NOTES =================
+    if officer_notes:
+        content.append(Paragraph("<b>✍️ APPRAISER SPECIAL NOTES</b>", styles["Heading2"]))
+        content.append(Paragraph(officer_notes, styles["Normal"]))
+        content.append(Spacer(1, 10))
+        
+    # Footer Signatures
+    content.append(Spacer(1, 20))
+    content.append(Paragraph("This evaluation certificate is digitally generated. All appraisals are backed by live spot pricing feeds and compliant with RBI LTV regulations.", styles["Normal"]))
+    content.append(Spacer(1, 10))
+    content.append(Paragraph("Authorized Appraiser: AegisCR Collateral Evaluation Cell", styles["Normal"]))
+    
+    doc.build(content)
+    return file_path

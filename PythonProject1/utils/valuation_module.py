@@ -125,6 +125,7 @@ def get_hashed_rate(state, district, village, pincode, land_type):
     
     return guidance, market_mult, growth
 
+@st.cache_data
 def lookup_db_guideline(district, taluk, village, land_type, survey_number=None):
     if not district or not village:
         return None
@@ -529,6 +530,7 @@ def calculate_valuation(state, district, village, pincode, survey_number, land_a
         "depreciated_factor": depreciated_factor
     }
 
+@st.cache_data
 def geocode_address(state, district, taluk=None, village=None):
     import requests
     import re
