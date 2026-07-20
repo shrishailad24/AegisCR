@@ -15,3 +15,8 @@ dist/
 *.pkl
 *.db
 *.csv
+*.exe
+*.db
+*.pkl
+guidelines_temp/
+*.log
