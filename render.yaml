@@ -6,7 +6,7 @@ services:
     region: singapore
     plan: free
     buildCommand: "pip install --no-cache-dir -r requirements.txt"
-    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-max-requests 1000"
+    startCommand: "streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.fileWatcherType none"
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
