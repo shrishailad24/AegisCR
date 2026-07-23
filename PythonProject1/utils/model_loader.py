@@ -1,3 +1,4 @@
+import streamlit as st
 import os
 import pickle
 import gc
@@ -6,6 +7,7 @@ import gc
 _cached_valuation_model = None
 _cached_loan_model = None
 
+@st.cache_resource
 def get_valuation_model():
     """
     Lazy loads and caches the property valuation model.
@@ -35,6 +37,7 @@ def get_valuation_model():
                 print(f"[ERROR] Failed to load valuation model from {path}: {e}")
     return None
 
+@st.cache_resource
 def get_loan_model():
     """
     Lazy loads and caches the loan approval model.

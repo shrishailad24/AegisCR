@@ -40,13 +40,25 @@ class EvaluateLoanModuleInput(BaseModel):
     gold_weight_grams: float = 0.0
     gold_purity: str = "22K"
     
+    # Applicant & Financial Fields for Underwriting
+    applicant_name: str = "John Doe"
+    annual_income: float = 1200000.0
+    existing_liabilities: float = 0.0
+    credit_score: int = 750
+    requested_loan: float = 5000000.0
+    loan_purpose: str = "Home Purchase"
+    
+    # KYC & Verification Status
+    aadhaar_verified: bool = True
+    pan_verified: bool = True
+    ocr_trust_score: float = 95.0
+    
     # Farm Equipment parameters
     equipment_type: str = "Tractor"
     equipment_brand: str = "Mahindra"
     equipment_cost: float = 0.0
     down_payment: float = 0.0
     farm_size_acres: float = 0.0
-    annual_income: float = 0.0
     subsidy_amount: float = 0.0
     
     # Vehicle parameters
@@ -135,18 +147,69 @@ def evaluate_loan_module(payload: EvaluateLoanModuleInput):
             total_prop_val = land_value + bldg_value
             rec_loan = total_prop_val * 0.80
             req_loan = payload.requested_loan or rec_loan
+            req_loan = min(req_loan, rec_loan) # Cap at LTV limits
             ltv = (req_loan / total_prop_val * 100.0) if total_prop_val > 0 else 0.0
+            
+            # Financial & Risk Computations
+            monthly_income = payload.annual_income / 12.0 if payload.annual_income > 0 else 1.0
+            monthly_liabilities = payload.existing_liabilities / 12.0
+            
+            # EMI Calculation (9.5% interest, 20 years = 240 months)
+            r = 9.5 / (12 * 100)
+            n = 240
+            emi = req_loan * r * ((1 + r)**n) / (((1 + r)**n) - 1) if req_loan > 0 else 0
+            total_repayment = emi * n
+            total_interest = total_repayment - req_loan
+            
+            dti = ((emi + monthly_liabilities) / monthly_income) * 100.0
+            
+            # Risk Scoring (Lower is better)
+            prop_risk = 10 if age < 10 else (30 if age < 20 else 50)
+            fin_risk = 10 if dti < 35 else (30 if dti < 50 else 70)
+            if payload.credit_score < 650: fin_risk += 30
+            fraud_risk = 0 if (payload.aadhaar_verified and payload.pan_verified) else 50
+            fraud_risk += (100 - payload.ocr_trust_score)
+            
+            overall_risk = (prop_risk * 0.3) + (fin_risk * 0.5) + (fraud_risk * 0.2)
+            
+            if overall_risk > 50 or dti > 60 or payload.credit_score < 600:
+                rec_status = "REJECT"
+            elif overall_risk > 30 or dti > 45 or payload.credit_score < 700:
+                rec_status = "MANUAL REVIEW"
+            else:
+                rec_status = "APPROVE"
             
             return {
                 "module": "home",
+                "applicant_name": payload.applicant_name,
+                "annual_income": round(payload.annual_income, 2),
+                "existing_liabilities": round(payload.existing_liabilities, 2),
+                "credit_score": payload.credit_score,
+                "loan_purpose": payload.loan_purpose,
+                
                 "rate_per_sqft": round(rate_sqft, 2),
                 "land_value": round(land_value, 2),
                 "building_value": round(bldg_value, 2),
                 "total_property_value": round(total_prop_val, 2),
                 "recommended_loan": round(rec_loan, 2),
-                "eligible_loan": round(rec_loan, 2),
+                "eligible_loan": round(req_loan, 2), # The sanctioned amount based on cap
+                
                 "ltv": round(ltv, 1),
-                "status": "Eligible" if ltv <= 85 else "High LTV Warning"
+                "emi": round(emi, 2),
+                "total_interest": round(total_interest, 2),
+                "total_repayment": round(total_repayment, 2),
+                "dti": round(dti, 1),
+                
+                "prop_risk": min(100, int(prop_risk)),
+                "fin_risk": min(100, int(fin_risk)),
+                "fraud_risk": min(100, int(fraud_risk)),
+                "overall_risk": min(100, int(overall_risk)),
+                "recommendation": rec_status,
+                
+                "aadhaar_verified": payload.aadhaar_verified,
+                "pan_verified": payload.pan_verified,
+                "ocr_trust_score": payload.ocr_trust_score,
+                "status": "Eligible" if rec_status in ["APPROVE", "MANUAL REVIEW"] else "High Risk Warning"
             }
         elif mod == "agriculture":
             guidance_info = fetch_guideline_rate(payload.district, payload.taluk, payload.village, payload.land_type, "Karnataka")

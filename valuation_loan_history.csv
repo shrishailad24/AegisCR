@@ -1,3 +1,4 @@
 Reference_No,Date,Customer_Name,State,District,Village,PIN_Code,Survey_Number,Land_Area,Land_Type,Market_Value,Guidance_Value,Loan_Amount,LTV_Ratio,DTI_Ratio,Risk_Score,Decision,User_UID
 LN813686,19-07-2026,Rajesh Kumar (Secured),Karnataka,Bagalkote,"113, 113¥sÀ",560066,101/2,2400,Residential,1927200.0,400800.0,1349040,0.7,0.11,63.8,REJECTED,E1An7DK4NFVUUVih7mqZzc6xTuZ2
 LN576304,22-07-2026,Rajesh Kumar (Home),Karnataka,Bengaluru Urban,Standard Collateral,560001,COLLATERAL-01,1200,Home Loan (Secured by Residential Property),5000000.0,3000000.0,3500000,0.7,0.286,60.0,REJECTED,E1An7DK4NFVUUVih7mqZzc6xTuZ2
+LN535249,23-07-2026,Rajesh Kumar (Unsecured),N/A,N/A,N/A,N/A,N/A,0,Unsecured,0.0,0.0,500000,0.0,0.041,46.8,REJECTED,E1An7DK4NFVUUVih7mqZzc6xTuZ2
