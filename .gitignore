@@ -1,0 +1,26 @@
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+
+# Editors
+**/.idea/
+**/.vscode/
+**/*.iml
+
+# Android specific
+**/android/.gradle/
+**/android/local.properties
+**/android/app/google-services.json
+
+# Temporary / Log files
+**/*.log
+**/*.tmp
+
+# Secrets and Credentials
+google-services.json
+.env
+*.env
+
+# Local Backend Uploads
+/Backend/uploads/
+
