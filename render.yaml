@@ -1,0 +1,28 @@
+services:
+  # 1. FastAPI Backend Service
+  - type: web
+    name: aaroha-backend
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "uvicorn Backend.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: GROQ_API_KEY
+        sync: false # User can configure their key securely in the Render Dashboard
+
+  # 2. Streamlit Web Portal Service
+  - type: web
+    name: aaroha-web-portal
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.fileWatcherType none"
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: GROQ_API_KEY
+        sync: false # User can configure their key securely in the Render Dashboard
