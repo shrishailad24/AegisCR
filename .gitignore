@@ -24,3 +24,8 @@ google-services.json
 # Local Backend Uploads
 /Backend/uploads/
 
+# Private signing keys
+**/key.properties
+*.jks
+*.keystore
+
