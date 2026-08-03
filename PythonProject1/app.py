@@ -1363,7 +1363,13 @@ def render_property_intelligence(loan_type):
             # Fetch taluks dynamically
             taluk_list = get_db_taluks(district)
             if not taluk_list:
-                taluk_list = ["Badami", "Devanahalli", "Basavanagudi", "Sirsi", "Humnabad"]
+                import json
+                try:
+                    with open("karnataka_regions.json", "r") as f:
+                        regions = json.load(f)
+                    taluk_list = regions.get(district, ["Select Taluk"])
+                except Exception:
+                    taluk_list = ["Select Taluk"]
             curr_taluk = st.session_state.get("val_taluk_sel", taluk_list[0])
             if curr_taluk not in taluk_list:
                 matched_taluk = taluk_list[0]
