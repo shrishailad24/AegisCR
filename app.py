@@ -1347,7 +1347,7 @@ def render_property_intelligence(loan_type):
             # Fetch districts dynamically
             district_list = get_db_districts()
             if not district_list:
-                district_list = ["Bagalkote", "Bangalore Rural", "Basavangudi", "Belagavi", "Mysore", "Ramanagara"]
+                district_list = ["Bagalkote", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikkaballapura", "Chikkamagaluru", "Chitradurga", "Dakshina Kannada", "Davanagere", "Dharwad", "Gadag", "Hassan", "Haveri", "Kalaburagi", "Kodagu", "Kolar", "Koppal", "Mandya", "Mysuru", "Raichur", "Ramanagara", "Shivamogga", "Tumakuru", "Udupi", "Uttara Kannada", "Vijayapura", "Yadgir", "Vijayanagara"]
         
             curr_dist = st.session_state.get("val_district_sel", district_list[0])
             if curr_dist not in district_list:
