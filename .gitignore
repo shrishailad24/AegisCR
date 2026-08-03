@@ -1,10 +1,10 @@
-.venv/
-.idea/
-credentials/
-*.json
-__pycache__/
-assets/generated_letters/
-temp_uploads/
+.venv/
+.idea/
+credentials/
+*.json
+__pycache__/
+assets/generated_letters/
+temp_uploads/
 .venv/
 .idea/
 credentials/
@@ -38,4 +38,7 @@ credentials/
 *.key
 firebase-adminsdk*.json
 google-vision-key.json
-*.pdf
+*.pdf
+!PythonProject1/guidelines.db
+
+!PythonProject1/guidelines.db
