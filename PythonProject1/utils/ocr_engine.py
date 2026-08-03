@@ -25,18 +25,39 @@ def extract_vision_ocr_text(file_path):
     Integrates Google Cloud Vision API. Converts PDF pages locally to PNG bytes
     and performs document text detection. Falls back to local PyMuPDF on error.
     """
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials/google-vision-key.json"
-    
-    if not os.path.exists("credentials/google-vision-key.json"):
-        print("Google Vision Key not found. Running local PyMuPDF extraction...")
-        return extract_raw_text(file_path)
-        
     try:
         from google.cloud import vision  # Lazy load Vision API
+        from google.oauth2 import service_account
         import fitz  # Lazy load PyMuPDF
         import gc
+        import json
         
-        client = vision.ImageAnnotatorClient()
+        # 1. Try to load from JSON string in environment (Render/Cloud)
+        creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        # 2. Try to load from file path environment variable
+        creds_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        client = None
+        
+        if creds_json:
+            try:
+                cred_dict = json.loads(creds_json)
+                credentials = service_account.Credentials.from_service_account_info(cred_dict)
+                client = vision.ImageAnnotatorClient(credentials=credentials)
+            except Exception as e:
+                print(f"Error loading Google Vision credentials from JSON env var: {e}")
+                
+        if not client and creds_file and os.path.exists(creds_file):
+            client = vision.ImageAnnotatorClient()
+            
+        if not client and os.path.exists("credentials/google-vision-key.json"):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials/google-vision-key.json"
+            client = vision.ImageAnnotatorClient()
+            
+        if not client:
+            print("Google Vision Key not found. Running local PyMuPDF extraction...")
+            return extract_raw_text(file_path)
+            
         text = ""
         
         if file_path.lower().endswith(".pdf"):
