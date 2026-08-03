@@ -1,0 +1,16 @@
+# AegisCR - Render Free Tier Deployment Configuration
+services:
+  - type: web
+    name: aegiscr-backend
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.fileWatcherType none"
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: MALLOC_TRIM_THRESHOLD_
+        value: "65536"
+      - key: ENVIRONMENT
+        value: "production"
