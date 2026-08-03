@@ -1401,9 +1401,9 @@ def render_property_intelligence(loan_type):
             curr_taluk = st.session_state.get("val_taluk_sel", taluk_list[0])
             if curr_taluk not in taluk_list:
                 matched_taluk = taluk_list[0]
-                for t in taluk_list:
-                    if curr_taluk and (t.lower() in curr_taluk.lower() or curr_taluk.lower() in t.lower()):
-                        matched_taluk = t
+                for tk in taluk_list:
+                    if curr_taluk and (tk.lower() in curr_taluk.lower() or curr_taluk.lower() in tk.lower()):
+                        matched_taluk = tk
                         break
                 st.session_state["val_taluk_sel"] = matched_taluk
             t_idx = taluk_list.index(st.session_state["val_taluk_sel"]) if st.session_state.get("val_taluk_sel") in taluk_list else 0
@@ -1588,16 +1588,16 @@ def render_property_intelligence(loan_type):
                                 # 2. Fuzzy match Taluk
                                 t_list = get_db_taluks(resolved_d)
                                 if taluk_g and t_list:
-                                    for t in t_list:
-                                        if t.lower() in taluk_g.lower() or taluk_g.lower() in t.lower():
-                                            resolved_t = t
+                                    for tk in t_list:
+                                        if tk.lower() in taluk_g.lower() or taluk_g.lower() in tk.lower():
+                                            resolved_t = tk
                                             break
                                     if not resolved_t:
-                                        for t in t_list:
-                                            t_words = set(t.lower().split())
+                                        for tk in t_list:
+                                            t_words = set(tk.lower().split())
                                             tg_words = set(taluk_g.lower().split())
                                             if t_words & tg_words:
-                                                resolved_t = t
+                                                resolved_t = tk
                                                 break
                                 if not resolved_t and t_list:
                                     resolved_t = t_list[0]
