@@ -7,7 +7,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
-def generate_loan_report(loan_type: str, valuation_data: dict) -> str:
+def generate_loan_report(loan_type: str, valuation_data: dict, lang: str = 'en') -> str:
     """
     Calls Groq API to generate a detailed Markdown loan evaluation report.
     """
@@ -22,7 +22,7 @@ You are AegisCR, an enterprise-grade AI Loan Underwriting Engine.
 Generate a highly professional, beautifully formatted, concise PDF Property Appraisal & Asset Evaluation Report for a {loan_type}.
 
 The user specifically requested this report to be SHORT, CLEAR, and fit within 1-2 pages max. Be punchy and data-driven. Do not use filler words.
-CRITICAL INSTRUCTION: DO NOT INCLUDE ANY APPLICANT PERSONAL OR FINANCIAL INFORMATION (No names, no income, no credit scores). Focus ENTIRELY on the Property, its Valuation, and its Asset-backed Loan Eligibility.
+CRITICAL INSTRUCTION: Generate the ENTIRE report in the language with ISO code: {lang}. DO NOT INCLUDE ANY APPLICANT PERSONAL OR FINANCIAL INFORMATION (No names, no income, no credit scores). Focus ENTIRELY on the Property, its Valuation, and its Asset-backed Loan Eligibility.
 
 LIVE DATA:
 {json.dumps(valuation_data, indent=2)}

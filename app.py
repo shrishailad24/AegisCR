@@ -24,7 +24,7 @@ from utils.ai_explainer import generate_ai_underwriting_report, query_underwrite
 from utils.pdf_generator import generate_pdf, generate_gold_pdf
 from utils.model_loader import get_loan_model
 import json
-
+from translations import t
 # ================= MEMORY LOGGING HELPER =================
 def log_memory_usage(tag=""):
     try:
@@ -717,20 +717,20 @@ def render_login_page():
     import streamlit.components.v1 as components
     _, col_center, _ = st.columns([1, 1.8, 1])
     with col_center:
-        st.markdown("<br/>", unsafe_allow_html=True)
+        st.markdown(t("br"), unsafe_allow_html=True)
         
         if current_page == "login":
             with st.form("login_form", clear_on_submit=False):
-                st.markdown('<div class="login-header">🔐 Sign In</div>', unsafe_allow_html=True)
-                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="login_email")
-                password = st.text_input("🔒 Password", type="password", placeholder="Enter your password", key="login_password")
+                st.markdown(t("div_class_login_header_sign_in_div"), unsafe_allow_html=True)
+                email = st.text_input(t("email_address"), placeholder="e.g. officer@aegiscr.com", key="login_email")
+                password = st.text_input(t("password"), type="password", placeholder="Enter your password", key="login_password")
                 submit = st.form_submit_button("Sign In", width='stretch')
                 
                 if submit:
                     from firebase.auth import sign_in_with_email
                     from firebase.users import save_user_profile
                     if not email or not password:
-                        st.error("Please enter both email and password.")
+                        st.error(t("please_enter_both_email_and_password"))
                     else:
                         with st.spinner("Authenticating..."):
                             user, err = sign_in_with_email(email, password)
@@ -753,12 +753,12 @@ def render_login_page():
                                         "idToken": user["idToken"],
                                         "provider": "Email"
                                     }
-                                    st.success("🎉 Sign-in successful! Redirecting...")
+                                    st.success(t("sign_in_successful_redirecting"))
                                     import time
                                     time.sleep(1)
                                     st.rerun()
                                 else:
-                                    st.error("❌ Failed to sync user session metadata with Firebase database.")
+                                    st.error(t("failed_to_sync_user_session_metadata_wit"))
             
             # Google Auth Divider
             st.markdown(
@@ -793,46 +793,46 @@ def render_login_page():
                                 "idToken": auth_result["idToken"],
                                 "provider": "Google"
                             }
-                            st.success("🎉 Sign-in successful! Redirecting...")
+                            st.success(t("sign_in_successful_redirecting"))
                             import time
                             time.sleep(1)
                             st.rerun()
                         else:
-                            st.error("❌ Failed to sync user session metadata with Firebase database.")
+                            st.error(t("failed_to_sync_user_session_metadata_wit"))
                 elif auth_result.get("status") == "error":
                     st.error(f"❌ Authentication failed: {auth_result.get('message')}")
                 elif auth_result.get("status") == "loading":
-                    st.info("⚡ Connecting to Google...")
+                    st.info(t("connecting_to_google"))
             
             # Navigation links
-            st.markdown("<br/>", unsafe_allow_html=True)
+            st.markdown(t("br"), unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Create Account", width='stretch'):
+                if st.button(t("create_account"), width='stretch'):
                     st.session_state["auth_page"] = "signup"
                     st.rerun()
             with col2:
-                if st.button("Reset Password", width='stretch'):
+                if st.button(t("reset_password"), width='stretch'):
                     st.session_state["auth_page"] = "reset"
                     st.rerun()
                     
         elif current_page == "signup":
             with st.form("signup_form", clear_on_submit=False):
-                st.markdown('<div class="login-header">📝 Create Account</div>', unsafe_allow_html=True)
-                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="signup_email")
-                password = st.text_input("🔒 Password (min 6 chars)", type="password", placeholder="Choose a password", key="signup_password")
-                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password", key="signup_confirm_password")
+                st.markdown(t("div_class_login_header_create_account_di"), unsafe_allow_html=True)
+                email = st.text_input(t("email_address"), placeholder="e.g. officer@aegiscr.com", key="signup_email")
+                password = st.text_input(t("password_min_6_chars"), type="password", placeholder="Choose a password", key="signup_password")
+                confirm_password = st.text_input(t("confirm_password"), type="password", placeholder="Confirm your password", key="signup_confirm_password")
                 submit = st.form_submit_button("Create Account", width='stretch')
                 
                 if submit:
                     from firebase.auth import sign_up_with_email
                     from firebase.users import save_user_profile
                     if not email or not password or not confirm_password:
-                        st.error("Please fill in all fields.")
+                        st.error(t("please_fill_in_all_fields"))
                     elif password != confirm_password:
-                        st.error("Passwords do not match.")
+                        st.error(t("passwords_do_not_match"))
                     elif len(password) < 6:
-                        st.error("Password should be at least 6 characters long.")
+                        st.error(t("password_should_be_at_least_6_characters"))
                     else:
                         with st.spinner("Registering..."):
                             user, err = sign_up_with_email(email, password)
@@ -855,12 +855,12 @@ def render_login_page():
                                         "idToken": user["idToken"],
                                         "provider": "Email"
                                     }
-                                    st.success("🎉 Registration successful! Logging in...")
+                                    st.success(t("registration_successful_logging_in"))
                                     import time
                                     time.sleep(1)
                                     st.rerun()
                                 else:
-                                    st.error("❌ Failed to sync user session metadata with Firebase database.")
+                                    st.error(t("failed_to_sync_user_session_metadata_wit"))
             
             # Google Auth Divider
             st.markdown(
@@ -895,42 +895,42 @@ def render_login_page():
                                 "idToken": auth_result["idToken"],
                                 "provider": "Google"
                             }
-                            st.success("🎉 Sign-in successful! Redirecting...")
+                            st.success(t("sign_in_successful_redirecting"))
                             import time
                             time.sleep(1)
                             st.rerun()
                         else:
-                            st.error("❌ Failed to sync user session metadata with Firebase database.")
+                            st.error(t("failed_to_sync_user_session_metadata_wit"))
                 elif auth_result.get("status") == "error":
                     st.error(f"❌ Authentication failed: {auth_result.get('message')}")
                 elif auth_result.get("status") == "loading":
-                    st.info("⚡ Connecting to Google...")
+                    st.info(t("connecting_to_google"))
             
-            st.markdown("<br/>", unsafe_allow_html=True)
-            if st.button("Already have an account? Sign In", width='stretch'):
+            st.markdown(t("br"), unsafe_allow_html=True)
+            if st.button(t("already_have_an_account_sign_in"), width='stretch'):
                 st.session_state["auth_page"] = "login"
                 st.rerun()
                 
         elif current_page == "reset":
             with st.form("reset_form", clear_on_submit=False):
-                st.markdown('<div class="login-header">🔑 Reset Password</div>', unsafe_allow_html=True)
-                email = st.text_input("📧 Email Address", placeholder="e.g. officer@aegiscr.com", key="reset_email")
+                st.markdown(t("div_class_login_header_reset_password_di"), unsafe_allow_html=True)
+                email = st.text_input(t("email_address"), placeholder="e.g. officer@aegiscr.com", key="reset_email")
                 submit = st.form_submit_button("Send Reset Link", width='stretch')
                 
                 if submit:
                     from firebase.auth import send_password_reset_email
                     if not email:
-                        st.error("Please enter your email address.")
+                        st.error(t("please_enter_your_email_address"))
                     else:
                         with st.spinner("Sending reset request..."):
                             success, err = send_password_reset_email(email)
                             if success:
-                                st.success("📨 Password reset email sent! Please check your inbox.")
+                                st.success(t("password_reset_email_sent_please_check_y"))
                             else:
                                 st.error(f"❌ {err}")
             
-            st.markdown("<br/>", unsafe_allow_html=True)
-            if st.button("Back to Sign In", width='stretch'):
+            st.markdown(t("br"), unsafe_allow_html=True)
+            if st.button(t("back_to_sign_in"), width='stretch'):
                 st.session_state["auth_page"] = "login"
                 st.rerun()
 
@@ -969,6 +969,27 @@ coordinate_db = {
 }
 
 # ================= SIDEBAR NAVIGATION =================
+
+# --- Language Selector ---
+SUPPORTED_LANGUAGES = {
+    "en": "English",
+    "hi": "Hindi (हिन्दी)",
+    "kn": "Kannada (ಕನ್ನಡ)",
+    "ta": "Tamil (தமிழ்)",
+    "te": "Telugu (తెలుగు)",
+    "mr": "Marathi (मराठी)",
+    "bn": "Bengali (বাংলা)",
+    "gu": "Gujarati (ગુજરાતી)",
+    "ml": "Malayalam (മലയാളം)",
+    "pa": "Punjabi (ਪੰਜਾਬੀ)"
+}
+lang_options = list(SUPPORTED_LANGUAGES.values())
+lang_keys = list(SUPPORTED_LANGUAGES.keys())
+current_lang_idx = lang_keys.index(st.session_state.get("app_language", "en"))
+
+selected_lang_name = st.sidebar.selectbox("Language / ಭಾಷೆ / भाषा", lang_options, index=current_lang_idx)
+st.session_state["app_language"] = lang_keys[lang_options.index(selected_lang_name)]
+
 # Show user details in sidebar
 if "user" in st.session_state:
     user = st.session_state["user"]
@@ -990,9 +1011,9 @@ if "user" in st.session_state:
         unsafe_allow_html=True
     )
     
-    if st.sidebar.button("🔓 Log Out", width='stretch'):
+    if st.sidebar.button(t("log_out"), width='stretch'):
         st.session_state.pop("user", None)
-        st.success("Logged out successfully!")
+        st.success(t("logged_out_successfully"))
         import time
         time.sleep(1)
         st.rerun()
@@ -1040,9 +1061,9 @@ st.session_state["developer_mode"] = st.sidebar.checkbox("Enable Developer Debug
 st.sidebar.markdown(f"**Application Reference ID:** `{st.session_state['application_id']}`")
 
 if st.session_state.get("developer_mode", False):
-    st.sidebar.markdown("##### **📋 Pre-Deployment Checklist:**")
+    st.sidebar.markdown(t("pre_deployment_checklist"))
     st.sidebar.markdown(
-        "- `[x] User Authentication` (Simulated)\n"
+        "- `[x] User Authentication Simulated`\n"
         "- `[x] File Upload Handling`\n"
         "- `[x] Google Vision OCR Parsing`\n"
         "- `[x] Cross-Document Match Engine`\n"
@@ -1089,7 +1110,7 @@ if st.session_state.get("developer_mode", False):
                 with open("logs/underwriting_errors.log", "r") as f:
                     lines = f.readlines()
                 if lines:
-                    st.markdown("### 📋 Recent Underwriting Errors")
+                    st.markdown(t("recent_underwriting_errors"))
                     for line in reversed(lines[-5:]): # show last 5 errors
                         err_data = json.loads(line.strip())
                         st.markdown(
@@ -1102,15 +1123,15 @@ if st.session_state.get("developer_mode", False):
                             unsafe_allow_html=True
                         )
                 else:
-                    st.info("No recorded exceptions in log file.")
+                    st.info(t("no_recorded_exceptions_in_log_file"))
             except Exception as ex:
-                st.write("Error reading log file:", ex)
+                st.write(t("error_reading_log_file"), ex)
         else:
-            st.info("No error log database found.")
+            st.info(t("no_error_log_database_found"))
             
     with st.sidebar.expander("💾 Intermediate Results Manager", expanded=False):
         # Save Session State button
-        if st.button("Save Current Session Profile", key="btn_save_session"):
+        if st.button(t("save_current_session_profile"), key="btn_save_session"):
             session_payload = {
                 "application_id": st.session_state.get("application_id"),
                 "dossier_verification": st.session_state.get("dossier_verification"),
@@ -1130,8 +1151,8 @@ if st.session_state.get("developer_mode", False):
         os.makedirs("logs/session_backups", exist_ok=True)
         backups = [f for f in os.listdir("logs/session_backups") if f.endswith(".json")]
         if backups:
-            selected_backup = st.selectbox("Restore Session Profile", backups, key="sb_restore_session")
-            if st.button("Restore Selected Profile", key="btn_restore_session"):
+            selected_backup = st.selectbox(t("restore_session_profile"), backups, key="sb_restore_session")
+            if st.button(t("restore_selected_profile"), key="btn_restore_session"):
                 try:
                     fn = f"logs/session_backups/{selected_backup}"
                     with open(fn, "r") as f:
@@ -1145,13 +1166,13 @@ if st.session_state.get("developer_mode", False):
                     if saved_payload.get("underwriting_results"):
                         st.session_state["underwriting_results"] = saved_payload.get("underwriting_results")
                         
-                    st.success("Session Profile Restored! Refreshing...")
+                    st.success(t("session_profile_restored_refreshing"))
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error loading session: {e}")
         else:
-            st.info("No saved session backups found.")
-if st.sidebar.button("Run Golden Test (Property Math)"):
+            st.info(t("no_saved_session_backups_found"))
+if st.sidebar.button(t("run_golden_test_property_math")):
     # Run the Golden Test check on known inputs
     print("[DEVELOPER SELF-TEST] Running Golden Test with expected property valuation data...")
     try:
@@ -1186,8 +1207,8 @@ if st.sidebar.button("Run Golden Test (Property Math)"):
         print(f"[DEVELOPER SELF-TEST] Error: {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("🔑 **Role-Based Access Control (RBAC)**")
-selected_role = st.sidebar.selectbox("Active Operating Role", ["👔 Loan Officer", "👤 Customer Portal", "🏢 Branch Manager", "⚙️ System Admin"], key="st_role_sel")
+st.sidebar.markdown(t("role_based_access_control_rbac"))
+selected_role = st.sidebar.selectbox(t("active_operating_role"), ["👔 Loan Officer", "👤 Customer Portal", "🏢 Branch Manager", "⚙️ System Admin"], key="st_role_sel")
 st.session_state["user_role"] = selected_role
 st.sidebar.markdown("---")
 version, commit_hash = get_git_info()
@@ -1243,7 +1264,7 @@ history_df = load_history()
 
 # ================= TAB 1: EXECUTIVE DASHBOARD =================
 with tab1:
-    st.markdown("<div class='section-header'>📊 PORTFOLIO PERFORMANCE CONSOLE</div>", unsafe_allow_html=True)
+    st.markdown(t("div_class_section_header_portfolio_perfo"), unsafe_allow_html=True)
     st.markdown(
         f"""
         <div style='display:flex; justify-content:flex-end; margin-top:-45px; margin-bottom:15px;'>
@@ -1283,31 +1304,31 @@ with tab1:
         rate = (approved_count / total_processed * 100) if total_processed > 0 else 0.0
         st.markdown(f'<div class="metric-card"><div class="metric-title">📈 average approval rate</div><div class="metric-value">{rate:.1f}%</div></div>', unsafe_allow_html=True)
         
-    st.markdown("<br/>", unsafe_allow_html=True)
+    st.markdown(t("br"), unsafe_allow_html=True)
     
     gcol1, gcol2 = st.columns(2)
     with gcol1:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("📍 Regional Activity Heatmap")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("regional_activity_heatmap"))
         if not user_history.empty and "District" in user_history.columns:
             dist_counts = user_history["District"].value_counts().reset_index()
             dist_counts.columns = ["District", "Applications"]
             st.bar_chart(dist_counts.set_index("District"))
         else:
-            st.info("ℹ️ No regional evaluation data available for this account.")
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.info(t("ℹ_no_regional_evaluation_data_available_"))
+        st.markdown(t("div"), unsafe_allow_html=True)
         
     with gcol2:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("⚖️ Risk Score Distribution")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("risk_score_distribution"))
         if not user_history.empty and "Risk_Score" in user_history.columns:
             risk_series = user_history["Risk_Score"]
             hist_vals, bin_edges = np.histogram(risk_series, bins=10, range=(0, 100))
             chart_data = pd.DataFrame(hist_vals, index=bin_edges[:-1], columns=["Risk Scores"])
             st.area_chart(chart_data)
         else:
-            st.info("ℹ️ No risk score evaluation data available for this account.")
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.info(t("ℹ_no_risk_score_evaluation_data_availabl"))
+        st.markdown(t("div"), unsafe_allow_html=True)
 
 
 
@@ -1319,8 +1340,8 @@ def render_property_intelligence(loan_type):
     col_inputs, col_map = st.columns([1, 1.2])
     
     with col_inputs:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("📋 Property Address Registration")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("property_address_registration"))
     
         # Initialize interactive form keys if not already present
         if "val_state" not in st.session_state:
@@ -1337,7 +1358,7 @@ def render_property_intelligence(loan_type):
         state_options = ["Karnataka", "Telangana", "Maharashtra", "Tamil Nadu", "Other"]
         # Find index for state
         state_idx = state_options.index(st.session_state["val_state"]) if st.session_state["val_state"] in state_options else 0
-        state = st.selectbox("State", state_options, index=state_idx, key="val_state_widget")
+        state = st.selectbox(t("state"), state_options, index=state_idx, key="val_state_widget")
         st.session_state["val_state"] = state
     
         taluk = None
@@ -1364,7 +1385,7 @@ def render_property_intelligence(loan_type):
                         break
                 st.session_state["val_district_sel"] = matched_dist
             d_idx = district_list.index(st.session_state["val_district_sel"]) if st.session_state.get("val_district_sel") in district_list else 0
-            district = st.selectbox("District", district_list, index=d_idx, key="val_district_sel_widget")
+            district = st.selectbox(t("district"), district_list, index=d_idx, key="val_district_sel_widget")
             st.session_state["val_district_sel"] = district
     
             # Fetch taluks dynamically
@@ -1386,7 +1407,7 @@ def render_property_intelligence(loan_type):
                         break
                 st.session_state["val_taluk_sel"] = matched_taluk
             t_idx = taluk_list.index(st.session_state["val_taluk_sel"]) if st.session_state.get("val_taluk_sel") in taluk_list else 0
-            taluk = st.selectbox("Taluk / Sub-Registrar Office", taluk_list, index=t_idx, key="val_taluk_sel_widget")
+            taluk = st.selectbox(t("taluk_sub_registrar_office"), taluk_list, index=t_idx, key="val_taluk_sel_widget")
             st.session_state["val_taluk_sel"] = taluk
     
             # Fetch villages dynamically
@@ -1402,7 +1423,7 @@ def render_property_intelligence(loan_type):
                         break
                 st.session_state["val_village_sel"] = matched_village
             v_idx = village_list.index(st.session_state["val_village_sel"]) if st.session_state.get("val_village_sel") in village_list else 0
-            village = st.selectbox("Village / Layout / Road", village_list, index=v_idx, key="val_village_sel_widget_1")
+            village = st.selectbox(t("village_layout_road"), village_list, index=v_idx, key="val_village_sel_widget_1")
             st.session_state["val_village_sel"] = village
     
         elif state in GEO_DB:
@@ -1416,7 +1437,7 @@ def render_property_intelligence(loan_type):
                         break
                 st.session_state["val_district_sel"] = matched_dist
             d_idx = district_list.index(st.session_state["val_district_sel"]) if st.session_state.get("val_district_sel") in district_list else 0
-            district = st.selectbox("District", district_list, index=d_idx, key="val_district_sel_widget")
+            district = st.selectbox(t("district"), district_list, index=d_idx, key="val_district_sel_widget")
             st.session_state["val_district_sel"] = district
     
             village_list = GEO_DB[state]["districts"][district]["villages"]
@@ -1429,26 +1450,26 @@ def render_property_intelligence(loan_type):
                         break
                 st.session_state["val_village_sel"] = matched_village
             v_idx = village_list.index(st.session_state["val_village_sel"]) if st.session_state.get("val_village_sel") in village_list else 0
-            village = st.selectbox("Village / Layout", village_list, index=v_idx, key="val_village_sel_widget_2")
+            village = st.selectbox(t("village_layout"), village_list, index=v_idx, key="val_village_sel_widget_2")
             st.session_state["val_village_sel"] = village
             taluk = ""
         else:
-            district = st.text_input("Enter District", key="val_district_text")
-            taluk = st.text_input("Enter Taluk / Sub-District", key="val_taluk_text")
-            village = st.text_input("Enter Village", key="val_village_text")
+            district = st.text_input(t("enter_district"), key="val_district_text")
+            taluk = st.text_input(t("enter_taluk_sub_district"), key="val_taluk_text")
+            village = st.text_input(t("enter_village"), key="val_village_text")
     
-        pincode = st.text_input("PIN Code", value=st.session_state.get("val_pincode", "560066"), key="val_pincode_widget")
+        pincode = st.text_input(t("pin_code"), value=st.session_state.get("val_pincode", "560066"), key="val_pincode_widget")
         st.session_state["val_pincode"] = pincode
-        survey_number = st.text_input("Survey Number (e.g. 142/3)", key="val_survey")
+        survey_number = st.text_input(t("survey_number_e_g_142_3"), key="val_survey")
     
         # Registration section complete
     
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
     
     with col_map:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🗺️ Interactive Land Boundaries (Leaflet Map)")
-        st.markdown("<p class='map-instruction'>Click anywhere on the map to pin the land boundaries and capture coordinates.</p>", unsafe_allow_html=True)
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("interactive_land_boundaries_leaflet_map"))
+        st.markdown(t("p_class_map_instruction_click_anywhere_o"), unsafe_allow_html=True)
     
         # Check if address changed to trigger map re-centering
         current_loc_key = f"{state}_{district}_{taluk}_{village}"
@@ -1622,7 +1643,7 @@ def render_property_intelligence(loan_type):
                         st.rerun()
     
         st.write(f"📍 **Captured Coordinates:** Latitude: `{clicked_lat:.6f}` | Longitude: `{clicked_lon:.6f}`")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
     
     # Shared rendering complete
     
@@ -1632,7 +1653,7 @@ def render_property_intelligence(loan_type):
 
 # ================= TAB MULTI: MULTI-LOAN PRODUCTS CONSOLE =================
 with tab_multi:
-    st.markdown("<div class='section-header'>🏦 AEGISCR MULTI-PRODUCT LOAN APPRAISAL CONSOLE</div>", unsafe_allow_html=True)
+    st.markdown(t("div_class_section_header_aegiscr_multi_p"), unsafe_allow_html=True)
     loan_prod_sel = st.radio(
         "Select Loan Product Module",
         ["🏠 Home Loan", "🌾 Agriculture Loan", "🏢 Commercial Loan", "🥇 Gold Loan", "🚜 Farm Equipment Loan", "🚗 Vehicle Loan"],
@@ -1641,25 +1662,25 @@ with tab_multi:
     )
     
     if loan_prod_sel == "🏠 Home Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🏠 Home Loan Property Intelligence")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("home_loan_property_intelligence"))
         # --- SECTION 1 & 2: SHARED PROPERTY CONTEXT ---
         render_property_intelligence("Home Loan")
         
         # --- SECTION 3: HOME PROPERTY DETAILS ---
-        st.markdown("#### 📝 Home Property Details")
+        st.markdown(t("home_property_details"))
         hcol1, hcol2, hcol3 = st.columns(3)
         with hcol1:
-            h_plot = st.number_input("Plot Area (Sq.Ft)", min_value=100.0, value=1200.0, key="h_plot")
-            h_built = st.number_input("Built-up Area (Sq.Ft)", min_value=0.0, value=1500.0, key="h_built")
+            h_plot = st.number_input(t("plot_area_sq_ft"), min_value=100.0, value=1200.0, key="h_plot")
+            h_built = st.number_input(t("built_up_area_sq_ft"), min_value=0.0, value=1500.0, key="h_built")
         with hcol2:
-            h_type = st.selectbox("Property Type", ["Independent House", "Residential Apartment", "Residential Plot"], key="h_type")
-            h_year = st.number_input("Construction Year", min_value=1950, max_value=2026, value=2020, key="h_year")
+            h_type = st.selectbox(t("property_type"), ["Independent House", "Residential Apartment", "Residential Plot"], key="h_type")
+            h_year = st.number_input(t("construction_year"), min_value=1950, max_value=2026, value=2020, key="h_year")
         with hcol3:
-            h_floors = st.number_input("Number of Floors", min_value=1, value=1, key="h_floors")
+            h_floors = st.number_input(t("number_of_floors"), min_value=1, value=1, key="h_floors")
         # --- SECTION 5: HOME LOAN ASSESSMENT ---
-        st.markdown("#### ⚡ Home Loan Assessment")
-        btn_h_clicked = st.button("Calculate Property Valuation & Loan Terms", key="btn_h_calc")
+        st.markdown(t("home_loan_assessment"))
+        btn_h_clicked = st.button(t("calculate_property_valuation_loan_terms"), key="btn_h_calc")
         if btn_h_clicked:
             st.session_state["h_calc_done"] = True
             st.session_state.pop("h_report_data", None)
@@ -1690,7 +1711,7 @@ with tab_multi:
             if True:
                 
                 # --- SECTION 4: AI PROPERTY INTELLIGENCE (Results) ---
-                st.markdown("#### 🤖 AI Property Intelligence")
+                st.markdown(t("ai_property_intelligence"))
                 vcol1, vcol2, vcol3 = st.columns(3)
                 with vcol1:
                     st.metric("Govt Guidance Value", f"₹{res['total_property_value'] * 0.7:,.2f}")
@@ -1699,14 +1720,14 @@ with tab_multi:
                     st.metric("AI Estimated Market Value", f"₹{res['total_property_value']:,.2f}")
                     st.metric("Market Trend", "+5.2% YOY")
                 with vcol3:
-                    st.markdown("**Fraud Detection:** <span style='color:#10b981;font-weight:bold'>PASS</span>", unsafe_allow_html=True)
-                    st.markdown("**Explainable AI Summary:** Values align perfectly with recent registries in this taluk. No anomalies detected in property boundaries.", unsafe_allow_html=True)
+                    st.markdown(t("fraud_detection_span_style_color_10b981_"), unsafe_allow_html=True)
+                    st.markdown(t("explainable_ai_summary_values_align_perf"), unsafe_allow_html=True)
                 
                 # --- SECTION 5 (cont): LOAN METRICS ---
                 st.success(f"✅ Recommended Sanction (80% LTV): **₹{res['recommended_loan']:,.2f}**")
                 
                 # --- NEARBY LISTINGS & PROJECTIONS ---
-                st.markdown("#### 🏢 Nearby Similar Registered Properties (NGDRS Transactions)")
+                st.markdown(t("nearby_similar_registered_properties_ngd"))
                 import pandas as pd
                 import random
                 nb1 = int(res['rate_per_sqft'] * random.uniform(0.9, 1.1))
@@ -1722,7 +1743,7 @@ with tab_multi:
                 })
                 st.table(ndf)
             
-                st.markdown("#### 📈 Future Collateral Appreciation Forecast")
+                st.markdown(t("future_collateral_appreciation_forecast"))
                 pcol1, pcol2, pcol3, pcol4 = st.columns(4)
                 pcol1.metric("Growth Rate", "8.5% Annual")
                 pcol2.metric("1 Year Value Projection", f"₹{res['total_property_value'] * 1.085:,.2f}")
@@ -1730,10 +1751,10 @@ with tab_multi:
                 pcol4.metric("5 Years Value Projection", f"₹{res['total_property_value'] * 1.503:,.2f}")
                 
                 # --- SECTION 6: REPORTS ---
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 h_rep_data = st.session_state.get("h_report_data", None)
                 if h_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_h_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_h_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             
@@ -1755,34 +1776,34 @@ with tab_multi:
                             st.session_state["h_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=h_rep_data, file_name="Home_Property_Valuation.pdf", mime="application/pdf", key="h_rep1")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
     elif loan_prod_sel == "🌾 Agriculture Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🌾 Agricultural Land Intelligence")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("agricultural_land_intelligence"))
         
         # --- SECTION 1 & 2: SHARED PROPERTY CONTEXT ---
         render_property_intelligence("Agriculture Loan")
         
         # --- SECTION 3: LAND DETAILS ---
-        st.markdown("#### 📝 Agricultural Land Details")
+        st.markdown(t("agricultural_land_details"))
         acol1, acol2, acol3 = st.columns(3)
         with acol1:
-            a_acres = st.number_input("Land Area (Acres)", min_value=0.1, value=5.0, step=0.5, key="a_acres")
-            a_soil = st.selectbox("Soil Type", ["Red Soil", "Black Cotton Soil", "Alluvial", "Laterite"], key="a_soil")
+            a_acres = st.number_input(t("land_area_acres"), min_value=0.1, value=5.0, step=0.5, key="a_acres")
+            a_soil = st.selectbox(t("soil_type"), ["Red Soil", "Black Cotton Soil", "Alluvial", "Laterite"], key="a_soil")
         with acol2:
-            a_type = st.selectbox("Land Classification", ["Dry Land", "Wet Land", "Bagayat Land", "Kharab"], key="a_type")
-            a_irrig = st.selectbox("Irrigation Source", ["Borewell", "Canal", "Rainfed", "Drip"], key="a_irrig")
+            a_type = st.selectbox(t("land_classification"), ["Dry Land", "Wet Land", "Bagayat Land", "Kharab"], key="a_type")
+            a_irrig = st.selectbox(t("irrigation_source"), ["Borewell", "Canal", "Rainfed", "Drip"], key="a_irrig")
         with acol3:
-            a_crop = st.selectbox("Crop Type", ["Paddy", "Sugarcane", "Cotton", "Maize"], key="a_crop")
-            a_season = st.selectbox("Crop Season", ["Kharif", "Rabi", "Zaid"], key="a_season")
+            a_crop = st.selectbox(t("crop_type"), ["Paddy", "Sugarcane", "Cotton", "Maize"], key="a_crop")
+            a_season = st.selectbox(t("crop_season"), ["Kharif", "Rabi", "Zaid"], key="a_season")
 
         # --- SECTION 5: AGRICULTURE LOAN ASSESSMENT ---
-        st.markdown("#### ⚡ Agriculture Loan Assessment")
-        btn_a_clicked = st.button("Calculate Ag Valuation & Risk Score", key="btn_a_calc")
+        st.markdown(t("agriculture_loan_assessment"))
+        btn_a_clicked = st.button(t("calculate_ag_valuation_risk_score"), key="btn_a_calc")
         if btn_a_clicked:
             st.session_state["a_calc_done"] = True
             st.session_state.pop("a_report_data", None)
@@ -1800,7 +1821,7 @@ with tab_multi:
             if True:
                 
                 # --- SECTION 4: WEATHER & AGRICULTURE INTELLIGENCE ---
-                st.markdown("#### 🌦️ Weather & Agriculture Intelligence")
+                st.markdown(t("weather_agriculture_intelligence"))
                 wcol1, wcol2, wcol3 = st.columns(3)
                 with wcol1:
                     st.metric("Rainfall", "Normal (+2%)")
@@ -1810,10 +1831,10 @@ with tab_multi:
                     st.metric("Drought Risk", "LOW", delta_color="inverse")
                 with wcol3:
                     st.metric("Crop Weather Score", "92/100")
-                    st.markdown("**Agriculture AI Analysis:** Excellent conditions for Kharif crops with sustained monsoon coverage.", unsafe_allow_html=True)
+                    st.markdown(t("agriculture_ai_analysis_excellent_condit"), unsafe_allow_html=True)
                 
                 # --- SECTION 5 (cont): VALUATION METRICS ---
-                st.markdown("#### 🤖 AI Land Valuation")
+                st.markdown(t("ai_land_valuation"))
                 vcol1, vcol2, vcol3 = st.columns(3)
                 with vcol1:
                     st.metric("Guidance Value", f"₹{res['total_land_value'] * 0.65:,.2f}")
@@ -1822,13 +1843,13 @@ with tab_multi:
                     st.metric("Estimated Market Value", f"₹{res['total_land_value']:,.2f}")
                     st.metric("AI Recommendation", "APPROVE")
                 with vcol3:
-                    st.markdown("**Fraud Detection:** <span style='color:#10b981;font-weight:bold'>PASS</span>", unsafe_allow_html=True)
-                    st.markdown("**Explainable AI:** Values are consistent with state records. No encumbrance disputes detected.", unsafe_allow_html=True)
+                    st.markdown(t("fraud_detection_span_style_color_10b981_"), unsafe_allow_html=True)
+                    st.markdown(t("explainable_ai_values_are_consistent_wit"), unsafe_allow_html=True)
                 
                 st.success(f"✅ Eligible Ag Loan (75% LTV): **₹{res['eligible_loan']:,.2f}**")
                 
                 # --- NEARBY LISTINGS & PROJECTIONS ---
-                st.markdown("#### 🏢 Nearby Similar Registered Properties (NGDRS Transactions)")
+                st.markdown(t("nearby_similar_registered_properties_ngd"))
                 import pandas as pd
                 import random
                 nb1 = int(res['rate_per_acre'] * random.uniform(0.9, 1.1))
@@ -1844,7 +1865,7 @@ with tab_multi:
                 })
                 st.table(ndf)
             
-                st.markdown("#### 📈 Future Collateral Appreciation Forecast")
+                st.markdown(t("future_collateral_appreciation_forecast"))
                 pcol1, pcol2, pcol3, pcol4 = st.columns(4)
                 pcol1.metric("Growth Rate", "5.2% Annual")
                 pcol2.metric("1 Year Value Projection", f"₹{res['total_land_value'] * 1.052:,.2f}")
@@ -1852,47 +1873,47 @@ with tab_multi:
                 pcol4.metric("5 Years Value Projection", f"₹{res['total_land_value'] * 1.288:,.2f}")
                 
                 # --- SECTION 6: REPORTS ---
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 a_rep_data = st.session_state.get("a_report_data", None)
                 if a_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_a_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_a_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             report_md = generate_loan_report("Agriculture Loan", res)
                             st.session_state["a_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=a_rep_data, file_name="Agriculture_Valuation.pdf", mime="application/pdf", key="a_rep1")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
     elif loan_prod_sel == "🏢 Commercial Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🏢 Commercial Property Intelligence")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("commercial_property_intelligence"))
         
         # --- SECTION 1 & 2: SHARED PROPERTY CONTEXT ---
         render_property_intelligence("Commercial Loan")
         
         # --- SECTION 3: COMMERCIAL PROPERTY DETAILS ---
-        st.markdown("#### 📝 Commercial Property Details")
+        st.markdown(t("commercial_property_details"))
         ccol1, ccol2, ccol3 = st.columns(3)
         with ccol1:
-            c_plot = st.number_input("Commercial Plot Area (Sq.Ft)", min_value=100.0, value=2000.0, key="c_plot")
-            c_built = st.number_input("Commercial Built-up Area (Sq.Ft)", min_value=0.0, value=3000.0, key="c_built")
-            c_type = st.selectbox("Building Type", ["Office Space", "Retail Shop", "Warehouse", "Industrial", "Mixed Use"], key="c_type")
+            c_plot = st.number_input(t("commercial_plot_area_sq_ft"), min_value=100.0, value=2000.0, key="c_plot")
+            c_built = st.number_input(t("commercial_built_up_area_sq_ft"), min_value=0.0, value=3000.0, key="c_built")
+            c_type = st.selectbox(t("building_type"), ["Office Space", "Retail Shop", "Warehouse", "Industrial", "Mixed Use"], key="c_type")
         with ccol2:
-            c_rent_m = st.number_input("Monthly Rental Income (₹)", min_value=0, value=150000, step=10000, key="c_rent_m")
-            c_rent_y = st.number_input("Annual Rental Income (₹)", min_value=0, value=1800000, step=100000, key="c_rent_y")
-            c_lease = st.selectbox("Lease Status", ["Long-term Leased", "Short-term Leased", "Vacant", "Self-Occupied"], key="c_lease")
+            c_rent_m = st.number_input(t("monthly_rental_income"), min_value=0, value=150000, step=10000, key="c_rent_m")
+            c_rent_y = st.number_input(t("annual_rental_income"), min_value=0, value=1800000, step=100000, key="c_rent_y")
+            c_lease = st.selectbox(t("lease_status"), ["Long-term Leased", "Short-term Leased", "Vacant", "Self-Occupied"], key="c_lease")
         with ccol3:
-            c_floors = st.number_input("Number of Floors", min_value=1, value=2, key="c_floors")
+            c_floors = st.number_input(t("number_of_floors"), min_value=1, value=2, key="c_floors")
             c_occ = st.slider("Current Occupancy (%)", 0, 100, 85, key="c_occ")
-            c_year = st.number_input("Construction Year", min_value=1950, max_value=2026, value=2015, key="c_year_comm")
+            c_year = st.number_input(t("construction_year"), min_value=1950, max_value=2026, value=2015, key="c_year_comm")
 
         # --- SECTION 5: COMMERCIAL LOAN ASSESSMENT ---
-        st.markdown("#### ⚡ Commercial Loan Assessment")
-        if st.button("Calculate Commercial Valuation & EMI", key="btn_c_calc"):
+        st.markdown(t("commercial_loan_assessment"))
+        if st.button(t("calculate_commercial_valuation_emi"), key="btn_c_calc"):
             with st.spinner("Analyzing commercial cash flows and DSCR..."):
                 from backend.routers.valuation import evaluate_loan_module, EvaluateLoanModuleInput
                 res = evaluate_loan_module(EvaluateLoanModuleInput(
@@ -1901,7 +1922,7 @@ with tab_multi:
                 ))
                 
                 # --- SECTION 4: COMMERCIAL PROPERTY INTELLIGENCE ---
-                st.markdown("#### 🤖 Commercial Property Intelligence")
+                st.markdown(t("commercial_property_intelligence"))
                 vcol1, vcol2, vcol3 = st.columns(3)
                 with vcol1:
                     st.metric("Govt Guidance Value", f"₹{res['property_value'] * 0.7:,.2f}")
@@ -1910,11 +1931,11 @@ with tab_multi:
                     st.metric("AI Estimated Market Value", f"₹{res['property_value']:,.2f}")
                     st.metric("Location Score", "95/100 (Prime Commercial)")
                 with vcol3:
-                    st.markdown("**Fraud Detection:** <span style='color:#10b981;font-weight:bold'>PASS</span>", unsafe_allow_html=True)
-                    st.markdown("**Explainable AI:** Strong cash flows and solid long-term leases validate the asset price.", unsafe_allow_html=True)
+                    st.markdown(t("fraud_detection_span_style_color_10b981_"), unsafe_allow_html=True)
+                    st.markdown(t("explainable_ai_strong_cash_flows_and_sol"), unsafe_allow_html=True)
                 
                 # --- SECTION 5 (cont): LOAN METRICS ---
-                st.markdown("#### 📈 Loan Underwriting Metrics")
+                st.markdown(t("loan_underwriting_metrics"))
                 ucol1, ucol2, ucol3 = st.columns(3)
                 with ucol1:
                     st.metric("Eligible Loan (65% LTV)", f"₹{res['eligible_loan']:,.2f}")
@@ -1922,10 +1943,10 @@ with tab_multi:
                     st.metric("Monthly EMI", f"₹{res['monthly_emi']:,.2f}")
                 with ucol3:
                     st.metric("Projected DSCR", "1.45x")
-                st.success("✅ **AI Loan Recommendation:** APPROVE (Strong DSCR and stable tenant profile)")
+                st.success(t("ai_loan_recommendation_approve_strong_ds"))
                 
                 # --- NEARBY LISTINGS & PROJECTIONS ---
-                st.markdown("#### 🏢 Nearby Similar Registered Properties (NGDRS Transactions)")
+                st.markdown(t("nearby_similar_registered_properties_ngd"))
                 import pandas as pd
                 import random
                 nb1 = int(res['comm_rate_per_sqft'] * random.uniform(0.9, 1.1))
@@ -1941,7 +1962,7 @@ with tab_multi:
                 })
                 st.table(ndf)
             
-                st.markdown("#### 📈 Future Collateral Appreciation Forecast")
+                st.markdown(t("future_collateral_appreciation_forecast"))
                 pcol1, pcol2, pcol3, pcol4 = st.columns(4)
                 pcol1.metric("Growth Rate", "10.5% Annual")
                 pcol2.metric("1 Year Value Projection", f"₹{res['property_value'] * 1.105:,.2f}")
@@ -1949,48 +1970,48 @@ with tab_multi:
                 pcol4.metric("5 Years Value Projection", f"₹{res['property_value'] * 1.647:,.2f}")
                 
                 # --- SECTION 6: REPORTS ---
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 c_rep_data = st.session_state.get("c_report_data", None)
                 if c_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_c_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_c_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             report_md = generate_loan_report("Commercial Loan", res)
                             st.session_state["c_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=c_rep_data, file_name="Commercial_Valuation.pdf", mime="application/pdf", key="c_rep1")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
     elif loan_prod_sel == "🥇 Gold Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🥇 AI Gold Loan Appraisal & Risk Intelligence")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("ai_gold_loan_appraisal_risk_intelligence"))
         
         # --- SECTION 1: ASSET DETAILS ---
-        st.markdown("#### ⚖️ Gold Asset Details")
+        st.markdown(t("gold_asset_details"))
         gcol1, gcol2, gcol3 = st.columns(3)
         with gcol1:
-            g_wt = st.number_input("Gold Weight (Grams)", min_value=1.0, value=50.0, key="g_wt")
+            g_wt = st.number_input(t("gold_weight_grams"), min_value=1.0, value=50.0, key="g_wt")
         with gcol2:
-            g_pur = st.selectbox("Purity", ["24K", "22K", "18K", "14K"], index=1, key="g_pur")
+            g_pur = st.selectbox(t("purity"), ["24K", "22K", "18K", "14K"], index=1, key="g_pur")
         with gcol3:
-            g_type = st.selectbox("Ornament Type", ["Solid Chain/Bangles", "Stone Embedded", "Coins/Bars"], key="g_type")
+            g_type = st.selectbox(t("ornament_type"), ["Solid Chain/Bangles", "Stone Embedded", "Coins/Bars"], key="g_type")
 
         # --- SECTION 2: VERIFICATION CHECK ---
-        st.markdown("#### 🔍 Asset Verification")
-        st.info("✅ Hallmark Verification Passed (HUID Matched via Bureau API)")
+        st.markdown(t("asset_verification"))
+        st.info(t("hallmark_verification_passed_huid_matche"))
 
         # --- SECTION 5: FINAL SANCTION & REPORTS ---
-        st.markdown("#### ⚡ AI Gold Appraisal")
-        if st.button("Calculate Live Gold Valuation", key="btn_g_calc"):
+        st.markdown(t("ai_gold_appraisal"))
+        if st.button(t("calculate_live_gold_valuation"), key="btn_g_calc"):
             with st.spinner("Fetching live spot rates and analyzing volatility..."):
                 from backend.routers.valuation import evaluate_loan_module, EvaluateLoanModuleInput
                 res = evaluate_loan_module(EvaluateLoanModuleInput(module="gold", gold_weight_grams=g_wt, gold_purity=g_pur))
                 
                 # --- SECTION 3: MARKET INTELLIGENCE ---
-                st.markdown("#### 📈 Market Intelligence")
+                st.markdown(t("market_intelligence"))
                 mcol1, mcol2, mcol3 = st.columns(3)
                 with mcol1:
                     st.metric("Live Spot Rate (Per Gram)", f"₹{res['rate_per_gram']:,}")
@@ -2000,55 +2021,55 @@ with tab_multi:
                     st.metric("1-Year Forecast", "+8.5% Growth")
                 
                 # --- SECTION 4: RISK ANALYSIS ---
-                st.markdown("#### 🛡️ Risk Analysis & Safe Limits")
+                st.markdown(t("risk_analysis_safe_limits"))
                 rcol1, rcol2, rcol3 = st.columns(3)
                 with rcol1:
                     st.metric("Regulatory Max LTV", "75.0%")
                 with rcol2:
                     st.metric("AI Safe LTV Limit", "72.0%")
                 with rcol3:
-                    st.markdown("**AI Risk Grade:** <span style='color:#10b981;font-weight:bold'>A+ (Ultra Low Risk)</span>", unsafe_allow_html=True)
+                    st.markdown(t("ai_risk_grade_span_style_color_10b981_fo"), unsafe_allow_html=True)
 
                 st.success(f"✅ Total Gold Value: **₹{res['gold_value']:,.2f}** | Eligible Loan: **₹{res['eligible_loan']:,.2f}** | Monthly EMI: **₹{res['monthly_emi']:,.2f}/mo**")
                 
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 g_rep_data = st.session_state.get("g_report_data", None)
                 if g_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_g_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_g_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             report_md = generate_loan_report("Gold Loan", res)
                             st.session_state["g_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=g_rep_data, file_name="Gold_Valuation.pdf", mime="application/pdf", key="g_rep1")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
     elif loan_prod_sel == "🚜 Farm Equipment Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🚜 Farm Equipment Intelligence & Underwriting")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("farm_equipment_intelligence_underwriting"))
         
         # --- SECTION 1: ASSET DETAILS ---
-        st.markdown("#### ⚙️ Machinery Details")
+        st.markdown(t("machinery_details"))
         fcol1, fcol2, fcol3 = st.columns(3)
         with fcol1:
-            f_eq = st.selectbox("Equipment Type", ["Tractor", "Combine Harvester", "Rotavator", "Power Tiller", "Irrigation Solar Pump"], key="f_eq")
-            f_brand = st.selectbox("Brand", ["Mahindra", "John Deere", "Sonalika", "Massey Ferguson", "Other"], key="f_brand")
+            f_eq = st.selectbox(t("equipment_type"), ["Tractor", "Combine Harvester", "Rotavator", "Power Tiller", "Irrigation Solar Pump"], key="f_eq")
+            f_brand = st.selectbox(t("brand"), ["Mahindra", "John Deere", "Sonalika", "Massey Ferguson", "Other"], key="f_brand")
         with fcol2:
-            f_cost = st.number_input("Purchase Cost (₹)", min_value=10000.0, value=850000.0, key="f_cost")
-            f_sub = st.number_input("Govt Subsidy Support (₹)", min_value=0.0, value=200000.0, key="f_sub")
+            f_cost = st.number_input(t("purchase_cost"), min_value=10000.0, value=850000.0, key="f_cost")
+            f_sub = st.number_input(t("govt_subsidy_support"), min_value=0.0, value=200000.0, key="f_sub")
         with fcol3:
-            f_down = st.number_input("Down Payment (₹)", min_value=0.0, value=120000.0, key="f_down")
-            f_acres = st.number_input("Applicant's Farm Land (Acres)", min_value=0.5, value=6.0, key="f_acres")
+            f_down = st.number_input(t("down_payment"), min_value=0.0, value=120000.0, key="f_down")
+            f_acres = st.number_input(t("applicant_s_farm_land_acres"), min_value=0.5, value=6.0, key="f_acres")
             
         # --- SECTION 2: USAGE INTELLIGENCE ---
-        st.markdown("#### 🚜 Usage & Health Intelligence")
-        st.info("✅ Dealer Verification Passed. Equipment classified as NEW (0 Usage Hours). Expected Remaining Life: 15 Years.")
+        st.markdown(t("usage_health_intelligence"))
+        st.info(t("dealer_verification_passed_equipment_cla"))
 
         # --- SECTION 5: FINAL SANCTION & REPORTS ---
-        st.markdown("#### ⚡ AI Equipment Appraisal")
-        if st.button("Calculate Farm Equipment Loan", key="btn_f_calc"):
+        st.markdown(t("ai_equipment_appraisal"))
+        if st.button(t("calculate_farm_equipment_loan"), key="btn_f_calc"):
             with st.spinner("Analyzing depreciation curves and farming feasibility..."):
                 from backend.routers.valuation import evaluate_loan_module, EvaluateLoanModuleInput
                 res = evaluate_loan_module(EvaluateLoanModuleInput(
@@ -2057,7 +2078,7 @@ with tab_multi:
                 ))
                 
                 # --- SECTION 3: AI VALUATION ---
-                st.markdown("#### 📉 Depreciation & Market Value")
+                st.markdown(t("depreciation_market_value"))
                 dcol1, dcol2, dcol3 = st.columns(3)
                 with dcol1:
                     st.metric("Net Cost (Post Subsidy)", f"₹{res['net_equipment_cost']:,.2f}")
@@ -2067,34 +2088,34 @@ with tab_multi:
                     st.metric("3-Year Resale Value", f"₹{res['net_equipment_cost']*0.60:,.2f}", "-40%")
                 
                 # --- SECTION 4: RISK ANALYSIS ---
-                st.markdown("#### 🛡️ Risk Analysis")
+                st.markdown(t("risk_analysis"))
                 rcol1, rcol2, rcol3 = st.columns(3)
                 with rcol1:
                     st.metric("Repayment Feasibility", "Strong (6 Acres sufficient)")
                 with rcol2:
                     st.metric("Ag Risk Score", f"{res['repayment_risk_score']}/100")
                 with rcol3:
-                    st.markdown("**Insurance Status:** <span style='color:#10b981;font-weight:bold'>VERIFIED</span>", unsafe_allow_html=True)
+                    st.markdown(t("insurance_status_span_style_color_10b981"), unsafe_allow_html=True)
                 
                 st.success(f"✅ Eligible Loan (85% LTV): **₹{res['eligible_loan']:,.2f}** | Monthly EMI: **₹{res['monthly_emi']:,.2f}/mo**")
                 
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 f_rep_data = st.session_state.get("f_report_data", None)
                 if f_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_f_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_f_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             report_md = generate_loan_report("Farm Equipment Loan", res)
                             st.session_state["f_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=f_rep_data, file_name="Equipment_Valuation.pdf", mime="application/pdf", key="f_rep1")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
     elif loan_prod_sel == "🚗 Vehicle Loan":
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🚗 AI Vehicle Intelligence & Auto Finance")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("ai_vehicle_intelligence_auto_finance"))
         
         @st.cache_data(ttl=3600)
         def get_cached_makes():
@@ -2114,28 +2135,28 @@ with tab_multi:
         makes_list = get_cached_makes()
         
         # --- SECTION 1: ASSET DETAILS ---
-        st.markdown("#### 🚙 Vehicle Asset Details")
+        st.markdown(t("vehicle_asset_details"))
         vcol1, vcol2, vcol3 = st.columns(3)
         with vcol1:
-            v_make = st.selectbox("Vehicle Brand (Make)", makes_list, index=makes_list.index("Mahindra") if "Mahindra" in makes_list else 0, key="st_v_make")
+            v_make = st.selectbox(t("vehicle_brand_make"), makes_list, index=makes_list.index("Mahindra") if "Mahindra" in makes_list else 0, key="st_v_make")
             models_list = get_cached_models(v_make)
-            v_model = st.selectbox("Vehicle Model", models_list, key="st_v_model")
+            v_model = st.selectbox(t("vehicle_model"), models_list, key="st_v_model")
         with vcol2:
             specs = get_cached_specs(v_make, v_model)
-            v_year = st.selectbox("Manufacturing Year", [2026, 2025, 2024, 2023, 2022], key="v_year")
-            v_fuel = st.selectbox("Fuel Type", ["Petrol", "Diesel", "EV", "Hybrid"], index=["Petrol", "Diesel", "EV", "Hybrid"].index(specs.get('fuel_type', 'Diesel')) if specs.get('fuel_type', 'Diesel') in ["Petrol", "Diesel", "EV", "Hybrid"] else 1, key="v_fuel")
+            v_year = st.selectbox(t("manufacturing_year"), [2026, 2025, 2024, 2023, 2022], key="v_year")
+            v_fuel = st.selectbox(t("fuel_type"), ["Petrol", "Diesel", "EV", "Hybrid"], index=["Petrol", "Diesel", "EV", "Hybrid"].index(specs.get('fuel_type', 'Diesel')) if specs.get('fuel_type', 'Diesel') in ["Petrol", "Diesel", "EV", "Hybrid"] else 1, key="v_fuel")
         with vcol3:
-            v_ex = st.number_input("Ex-Showroom Price (₹)", min_value=10000.0, value=float(specs.get("ex_showroom_price", 1200000.0)), key="st_v_ex")
-            v_onroad = st.number_input("On-Road Price (₹)", min_value=10000.0, value=float(specs.get("on_road_price", 1380000.0)), key="st_v_onroad")
-            v_down = st.number_input("Down Payment (₹)", min_value=0.0, value=float(specs.get("on_road_price", 1380000.0) * 0.15), key="st_v_down")
+            v_ex = st.number_input(t("ex_showroom_price"), min_value=10000.0, value=float(specs.get("ex_showroom_price", 1200000.0)), key="st_v_ex")
+            v_onroad = st.number_input(t("on_road_price"), min_value=10000.0, value=float(specs.get("on_road_price", 1380000.0)), key="st_v_onroad")
+            v_down = st.number_input(t("down_payment"), min_value=0.0, value=float(specs.get("on_road_price", 1380000.0) * 0.15), key="st_v_down")
 
         # --- SECTION 2: VEHICLE INTELLIGENCE ---
-        st.markdown("#### 🔍 Registration & Verification")
+        st.markdown(t("registration_verification"))
         st.info(f"⚙️ **CarQuery API Specs:** `{specs.get('transmission', 'Manual')}` • `{specs.get('engine_cc', '2000 cc')}` • `{specs.get('body_type', 'SUV')}` | **RC Check:** Not Registered (New)")
 
         # --- SECTION 5: FINAL SANCTION & REPORTS ---
-        st.markdown("#### ⚡ AI Auto Appraisal")
-        if st.button("Calculate Vehicle Loan Eligibility", key="btn_v_calc"):
+        st.markdown(t("ai_auto_appraisal"))
+        if st.button(t("calculate_vehicle_loan_eligibility"), key="btn_v_calc"):
             with st.spinner("Analyzing credit risk and vehicle depreciation..."):
                 from backend.routers.valuation import evaluate_loan_module, EvaluateLoanModuleInput
                 res = evaluate_loan_module(EvaluateLoanModuleInput(
@@ -2145,7 +2166,7 @@ with tab_multi:
                 ))
                 
                 # --- SECTION 3: AI VALUATION ---
-                st.markdown("#### 📉 Market Resale Forecast")
+                st.markdown(t("market_resale_forecast"))
                 mcol1, mcol2, mcol3 = st.columns(3)
                 with mcol1:
                     st.metric("Current Market Value", f"₹{res['on_road_price']:,.2f}")
@@ -2155,42 +2176,42 @@ with tab_multi:
                     st.metric("5-Year Resale Value", f"₹{res['on_road_price']*0.45:,.2f}", "-55%")
                 
                 # --- SECTION 4: RISK ANALYSIS ---
-                st.markdown("#### 🛡️ Risk & Fraud Analysis")
+                st.markdown(t("risk_fraud_analysis"))
                 rcol1, rcol2, rcol3 = st.columns(3)
                 with rcol1:
                     st.metric("Credit Risk Score", f"{res['credit_risk_score']}/100")
                 with rcol2:
-                    st.markdown("**Stolen Vehicle Database:** <span style='color:#10b981;font-weight:bold'>CLEAR</span>", unsafe_allow_html=True)
+                    st.markdown(t("stolen_vehicle_database_span_style_color"), unsafe_allow_html=True)
                 with rcol3:
-                    st.markdown("**Insurance Status:** <span style='color:#10b981;font-weight:bold'>NEW POLICY INITIATED</span>", unsafe_allow_html=True)
+                    st.markdown(t("insurance_status_span_style_color_10b981"), unsafe_allow_html=True)
                 
                 st.success(f"✅ Sanctioned Loan (85% LTV Cap): **₹{res['loan_sanction']:,.2f}** | Monthly EMI: **₹{res['monthly_emi']:,.2f}/mo**")
                 
-                st.markdown("#### 🤖 AI Report Generator")
+                st.markdown(t("ai_report_generator"))
                 v_rep_data = st.session_state.get("v_report_data", None)
                 if v_rep_data is None:
-                    if st.button("Generate AI Valuation Report", key="btn_v_gen"):
+                    if st.button(t("generate_ai_valuation_report"), key="btn_v_gen"):
                         with st.spinner("Generating detailed AI underwriting report via Groq..."):
                             from backend.services.report_generator import generate_loan_report, md_to_pdf_bytes
                             report_md = generate_loan_report("Vehicle Loan", res)
                             st.session_state["v_report_data"] = md_to_pdf_bytes(report_md)
                             st.rerun()
                 else:
-                    st.success("✅ AI Report generated successfully!")
+                    st.success(t("ai_report_generated_successfully"))
                     st.download_button("📄 Download AI Valuation Report (PDF)", data=v_rep_data, file_name="Auto_Valuation.pdf", mime="application/pdf", key="v_rep1")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
 
 # ================= TAB 3: DOCUMENT VERIFICATION =================
 with tab3:
-    st.markdown("<div class='section-header'>📂 CROSS-DOCUMENT OCR & COMPLIANCE ALIGNMENT</div>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#475569; font-size:12px;'>Upload loan application PDFs to trigger fuzzy cross-checks, mapping registries, and Document Trust Score compilation.</p>", unsafe_allow_html=True)
+    st.markdown(t("div_class_section_header_cross_document_"), unsafe_allow_html=True)
+    st.markdown(t("p_style_color_475569_font_size_12px_uplo"), unsafe_allow_html=True)
     
     # Simulating Tampered Dossiers
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("⚙️ Verification Demo Profile Simulator (For Live Demonstrations)")
+    st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+    st.subheader(t("verification_demo_profile_simulator_for_"))
     demo_profile = st.selectbox(
-        "Select Verification Dossier Spoof Profile",
+        t("select_verification_dossier_spoof_profil"),
         [
             "Standard Clean Profile (Approved status)",
             "Identity Tampering / Spoofing (Flags Name Mismatches & Deed Owner Conflicts)",
@@ -2208,18 +2229,18 @@ with tab3:
     )
     enable_simulation = st.checkbox("Enable Demo Simulation (Fall back to spoof profile if no files are uploaded)", value=False)
     if enable_simulation:
-        st.info("💡 Demo Simulation is active. If you run the audit without uploading files, the app will simulate the selected spoof profile.")
+        st.info(t("demo_simulation_is_active_if_you_run_the"))
     else:
-        st.warning("⚠️ Demo Simulation is inactive. You must upload files, or the audit will fail with 'Missing Document' flags.")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.warning(t("demo_simulation_is_inactive_you_must_upl"))
+    st.markdown(t("div"), unsafe_allow_html=True)
     
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("👤 Verification Context")
-    chk_name = st.text_input("Borrower Name (To cross-verify Aadhaar/PAN)", value="Rajesh Kumar")
-    chk_salary = st.number_input("Declared Salary (To verify Net Pay in Slip)", min_value=1000, value=75000)
+    st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+    st.subheader(t("verification_context"))
+    chk_name = st.text_input(t("borrower_name_to_cross_verify_aadhaar_pa"), value="Rajesh Kumar")
+    chk_salary = st.number_input(t("declared_salary_to_verify_net_pay_in_sli"), min_value=1000, value=75000)
     
     st.markdown("---")
-    st.subheader("📁 Upload PDFs for OCR Verification")
+    st.subheader(t("upload_pdfs_for_ocr_verification"))
     col_up1, col_up2 = st.columns(2)
     upl_aadhaar = col_up1.file_uploader("1. Aadhaar Card PDF", type=["pdf"])
     upl_pan = col_up2.file_uploader("2. PAN Card PDF", type=["pdf"])
@@ -2234,9 +2255,9 @@ with tab3:
         upl_ec = col_up4.file_uploader("8. RTC / Pahani / Encumbrance Certificate PDF", type=["pdf"])
         upl_bill = col_up3.file_uploader("9. Utility Bill PDF", type=["pdf"])
         
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(t("div"), unsafe_allow_html=True)
     
-    if st.button("Run OCR Document Audit"):
+    if st.button(t("run_ocr_document_audit")):
         # Setup category label based on selection
         if "Standard Clean Profile" in demo_profile or "Perfect Applicant" in demo_profile:
             profile_lbl = "Standard"
@@ -2271,7 +2292,7 @@ with tab3:
                 missing_docs.append("Sale Deed PDF (Title Deed)")
                 
             if missing_docs:
-                st.error("❌ **Cannot start verification. Missing required documents:**\n" + 
+                st.error(t("cannot_start_verification_missing_requir") + 
                          "\n".join([f"• {doc}" for doc in missing_docs]) + 
                          "\n\n*Please upload all required files to perform a real credit audit.*")
                 st.stop()
@@ -2516,15 +2537,15 @@ with tab3:
             gc.collect()
             log_memory_usage("After OCR Document Audit")
             
-            st.success("🎉 OCR Document Audit Complete! Trust Score calculated.")
+            st.success(t("ocr_document_audit_complete_trust_score_"))
             st.rerun()
             
     # Render Audit findings in Tab 3
     if "dossier_verification" in st.session_state:
         dv = st.session_state["dossier_verification"]
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🔍 Document Audit Dashboard & Alignment Matrix")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("document_audit_dashboard_alignment_matri"))
         
         # Display Trust progress gauge
         st.markdown(f"#### Verified Document Trust Score: **{dv['trust_score']}%**")
@@ -2536,7 +2557,7 @@ with tab3:
         tcol1, tcol2 = st.columns(2)
         
         with tcol1:
-            st.markdown("#### 🛡️ Document Trust Network Metrics")
+            st.markdown(t("document_trust_network_metrics"))
             raw_trust = dv["trust_score"]
             st.write(f"- **Authenticity Index (25%)**")
             st.progress(int(raw_trust * 0.98) if raw_trust > 80 else int(raw_trust * 0.7))
@@ -2571,7 +2592,7 @@ with tab3:
                 property_match = 94
                 
             st.markdown("---")
-            st.markdown("##### **🎯 Sub-Module Confidence Ratings:**")
+            st.markdown(t("sub_module_confidence_ratings"))
             st.markdown(f"- **OCR Extraction Confidence**: `{ocr_conf}%` Accuracy")
             st.markdown(f"- **PAN Verification Score**: `{pan_verification}%` Match")
             st.markdown(f"- **Name Match Similarity**: `{name_similarity}%` Similarity")
@@ -2579,19 +2600,19 @@ with tab3:
             st.markdown(f"- **AI Underwriting Prediction**: `95%` Confidence")
             
         with tcol2:
-            st.markdown("#### 📋 Banking Compliance Audit Checklist")
+            st.markdown(t("banking_compliance_audit_checklist"))
             is_good = dv["trust_score"] >= 85.0
-            st.write("✅ **KYC Completeness Verified**" if is_good else "⚠️ **KYC Mismatch Alert Flags**")
-            st.write("✅ **Aadhaar Format Validation (12 Digits Checked)**")
-            st.write("✅ **PAN Format Validation Check Passed**")
-            st.write("✅ **IFSC Code Integrity Check Verified**")
-            st.write("✅ **RBI Policy Cap: Debt-to-Income check**")
-            st.write("✅ **Bank Lending Cap: LTV threshold checks**")
+            st.write(t("kyc_completeness_verified") if is_good else "⚠️ **KYC Mismatch Alert Flags**")
+            st.write(t("aadhaar_format_validation_12_digits_chec"))
+            st.write(t("pan_format_validation_check_passed"))
+            st.write(t("ifsc_code_integrity_check_verified"))
+            st.write(t("rbi_policy_cap_debt_to_income_check"))
+            st.write(t("bank_lending_cap_ltv_threshold_checks"))
             
         st.markdown("---")
         
         # Render Relationship Nodes
-        st.markdown("#### 🔗 AI Relationship Nodes (Fuzzy Integrity Checks)")
+        st.markdown(t("ai_relationship_nodes_fuzzy_integrity_ch"))
         id_chk = dv["identity"]
         inc_chk = dv["income"]
         prop_chk = dv["property"]
@@ -2640,7 +2661,7 @@ with tab3:
         # Render Timeline Logs
         if "timeline" in dv:
             st.markdown("---")
-            st.markdown("#### 🕒 Dossier Forensic Audit Timeline")
+            st.markdown(t("dossier_forensic_audit_timeline"))
             for item in dv["timeline"]:
                 st.markdown(
                     f"""
@@ -2655,7 +2676,7 @@ with tab3:
         st.markdown("---")
         
         # Render AI Fraud Brain Logs
-        st.markdown("#### 🧠 AI Fraud Brain Audit Logs")
+        st.markdown(t("ai_fraud_brain_audit_logs"))
         col_f1, col_f2 = st.columns(2)
         with col_f1:
             st.markdown(f"- **Scan Resolution Verification**: `{fr_chk['Scan_Quality']}`")
@@ -2668,7 +2689,7 @@ with tab3:
         st.markdown("---")
         
         # Render Behavioral Cashflow stability
-        st.markdown("#### 📊 Behavioural Cash Flow Risk Card")
+        st.markdown(t("behavioural_cash_flow_risk_card"))
         col_cf1, col_cf2 = st.columns(2)
         with col_cf1:
             st.markdown(f"- **Bank Deposits consistency**: `{'🟢 Stable matching credits' if cf_chk['Status'] == 'PASS' else '🔴 ALERT: salary variance detected'}`")
@@ -2681,35 +2702,35 @@ with tab3:
         all_alerts = id_chk["Flags"] + inc_chk["Flags"] + prop_chk["Flags"] + cf_chk["Flags"] + fr_chk["Flags"]
         st.markdown("---")
         if all_alerts:
-            st.warning("⚠️ **Matching Deviations Flagged by Verification Gateway:**")
+            st.warning(t("matching_deviations_flagged_by_verificat"))
             for alert in all_alerts:
                 st.write(f"- {alert}")
         else:
-            st.success("✅ Document checks verified cleanly. Ready to predict approval in Tab 4.")
+            st.success(t("document_checks_verified_cleanly_ready_t"))
             
         if st.session_state.get("developer_mode", False):
             st.markdown("---")
-            st.subheader("🛠️ Developer Debugger: Document Extraction Payload")
+            st.subheader(t("developer_debugger_document_extraction_p"))
             d_col1, d_col2 = st.columns(2)
             with d_col1:
-                st.markdown("##### **📄 OCR Annotated Extracted Texts**")
+                st.markdown(t("ocr_annotated_extracted_texts"))
                 for doc_key, doc_data in dv.get("ocr_data", {}).items():
                     if doc_data and not doc_data.get("Missing", False):
                         st.markdown(f"**{doc_key.upper()} OCR Raw String Content:**")
                         st.code(doc_data.get("Raw_Text", "Sample OCR mock string text parsed by Google Cloud Vision API engine."))
             with d_col2:
-                st.markdown("##### **🗃️ Extracted JSON Structured Parameter Fields**")
+                st.markdown(t("extracted_json_structured_parameter_fiel"))
                 st.json(dv)
             
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
 
 
 # ================= TAB 4: SMART LOAN PREDICTION =================
 with tab4:
-    st.markdown("<div class='section-header'>📊 COMBINED CREDIT RISK & COLLATERAL ANALYSIS</div>", unsafe_allow_html=True)
+    st.markdown(t("div_class_section_header_combined_credit"), unsafe_allow_html=True)
     
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("⚙️ Collateral & Guarantee Structure")
+    st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+    st.subheader(t("collateral_guarantee_structure"))
     # Map the Multi-Product selection to the corresponding index
     mode_mapping = {
         "🏠 Home Loan": 0,
@@ -2730,7 +2751,7 @@ with tab4:
         default_index = 0
     
     collateral_mode = st.selectbox(
-        "Select Loan Structure", 
+        t("select_loan_structure"), 
         [
             "Home Loan (Secured by Residential Property)", 
             "Agriculture Loan (Secured by Ag Land)", 
@@ -2743,7 +2764,7 @@ with tab4:
         ],
         index=default_index
     )
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(t("div"), unsafe_allow_html=True)
     
     # Check property mapping based on mode
     has_property = False
@@ -2751,7 +2772,7 @@ with tab4:
     
     if collateral_mode in ["Secured (Using Borrower Owned Property)", "Secured (Using Co-Applicant Owned Property)"]:
         if "valued_property" not in st.session_state:
-            st.info("⚠️ Please complete the property valuation and mapping steps on the **🔍 Property Valuation & Map** tab first, then link it here.")
+            st.info(t("please_complete_the_property_valuation_a"))
         else:
             vp = st.session_state["valued_property"]
             has_property = True
@@ -2768,13 +2789,13 @@ with tab4:
         r22 = gold_data.get("price_gram_22k", 5850.75)
         r18 = gold_data.get("price_gram_18k", 4786.97)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🪙 Gold Collateral Details (Live Spot Valuation)")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("gold_collateral_details_live_spot_valuat"))
         gcol1, gcol2 = st.columns(2)
         with gcol1:
-            g_weight_st = st.number_input("Gold Collateral Weight (Grams)", min_value=1.0, value=20.0, step=1.0, key="st_g_weight")
+            g_weight_st = st.number_input(t("gold_collateral_weight_grams"), min_value=1.0, value=20.0, step=1.0, key="st_g_weight")
         with gcol2:
-            g_purity_st = st.selectbox("Purity Grade", ["22K (Standard Ornaments)", "24K (Pure Bullion)", "18K (Jewelry)"], key="st_g_purity")
+            g_purity_st = st.selectbox(t("purity_grade"), ["22K (Standard Ornaments)", "24K (Pure Bullion)", "18K (Jewelry)"], key="st_g_purity")
             
         rate_gram = r22
         purity_lbl = "22K"
@@ -2808,11 +2829,11 @@ with tab4:
         }
         has_property = True
         st.success(f"✅ Gold Collateral Assessed: `{g_weight_st}g` ({purity_lbl}) @ ₹{rate_gram:,.2f}/g | Market Value: **₹{total_gold_val:,.2f}** | Max Eligible (75% LTV): **₹{eligible_gold_ltv:,.2f}**")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
     else:
         # Unsecured Mode
         has_property = True
-        st.success("✅ Unsecured Credit Mode Active: No property collateral required. Evaluation will be based on income & credit bureau parameters.")
+        st.success(t("unsecured_credit_mode_active_no_property"))
         
     # Ensure vp is NEVER None for any collateral mode
     if vp is None:
@@ -2837,40 +2858,40 @@ with tab4:
         }
         
     if has_property:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("👤 Applicant Personal & Credit History")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("applicant_personal_credit_history"))
         
         lcol1, lcol2 = st.columns(2)
         with lcol1:
-            name = st.text_input("Borrower Name", value="Rajesh Kumar", key="tab4_name")
-            gender = st.selectbox("Gender", ["Male", "Female"])
-            married = st.selectbox("Married Status", ["Yes", "No"])
-            dependents = st.selectbox("Dependents Count", [0, 1, 2, 3])
-            education = st.selectbox("Education Level", ["Graduate", "Not Graduate"])
-            self_emp = st.selectbox("Self Employed Status", ["Yes", "No"])
+            name = st.text_input(t("borrower_name"), value="Rajesh Kumar", key="tab4_name")
+            gender = st.selectbox(t("gender"), ["Male", "Female"])
+            married = st.selectbox(t("married_status"), ["Yes", "No"])
+            dependents = st.selectbox(t("dependents_count"), [0, 1, 2, 3])
+            education = st.selectbox(t("education_level"), ["Graduate", "Not Graduate"])
+            self_emp = st.selectbox(t("self_employed_status"), ["Yes", "No"])
             
         with lcol2:
-            credit_hist = st.selectbox("Credit Bureau Rating (CIBIL Status)", [1.0, 0.0], 
+            credit_hist = st.selectbox(t("credit_bureau_rating_cibil_status"), [1.0, 0.0], 
                                      format_func=lambda x: "Good / Satisfactory (>= 750)" if x == 1.0 else "Default / Poor History (< 650)", key="tab4_credit_hist")
-            app_income = st.number_input("Applicant Monthly Income (₹)", min_value=1000, value=75000, key="tab4_app_income")
-            co_income = st.number_input("Co-Applicant Monthly Income (₹)", min_value=0, value=35000, key="tab4_co_income")
-            loan_term = st.number_input("Loan Repayment Tenure (Months)", min_value=12, max_value=360, value=240)
+            app_income = st.number_input(t("applicant_monthly_income"), min_value=1000, value=75000, key="tab4_app_income")
+            co_income = st.number_input(t("co_applicant_monthly_income"), min_value=0, value=35000, key="tab4_co_income")
+            loan_term = st.number_input(t("loan_repayment_tenure_months"), min_value=12, max_value=360, value=240)
             
             total_monthly_income = app_income + co_income
             # Contextual maximum loan limits
             if collateral_mode == "Unsecured Loan (Based on Income & CIBIL)":
                 max_eligible_cap = int(total_monthly_income * 20)
                 st.markdown(f"💡 **Recommended Max Unsecured Loan (20x Income):** `₹{max_eligible_cap:,.2f}`")
-                loan_amount = st.number_input("Requested Loan Sanction (₹)", min_value=10000, value=min(500000, max_eligible_cap), key="tab4_loan_amount_u")
+                loan_amount = st.number_input(t("requested_loan_sanction"), min_value=10000, value=min(500000, max_eligible_cap), key="tab4_loan_amount_u")
             elif collateral_mode == "Gold Loan (Secured by Gold Collateral)":
                 max_eligible_cap = int(vp['max_loan_amount'])
                 st.markdown(f"💡 **Recommended Max Gold Loan (75% RBI LTV):** `₹{max_eligible_cap:,.2f}`")
-                loan_amount = st.number_input("Requested Loan Sanction (₹)", min_value=5000, value=max_eligible_cap)
+                loan_amount = st.number_input(t("requested_loan_sanction"), min_value=5000, value=max_eligible_cap)
             else:
                 st.markdown(f"💡 **Recommended Max Loan (LTV Cap):** `₹{vp['max_loan_amount']:,.2f}` ({int(vp['eligible_ltv']*100)}% of Collateral)")
                 if collateral_mode == "Secured (Using Co-Applicant Owned Property)" and co_income == 0:
-                    st.warning("⚠️ For Co-Applicant collateral, co-applicant income or guarantees should ideally be declared.")
-                loan_amount = st.number_input("Requested Loan Sanction (₹)", min_value=10000, value=min(int(vp['total_market_value'] * 0.7), int(vp['max_loan_amount'])))
+                    st.warning(t("for_co_applicant_collateral_co_applicant"))
+                loan_amount = st.number_input(t("requested_loan_sanction"), min_value=10000, value=min(int(vp['total_market_value'] * 0.7), int(vp['max_loan_amount'])))
 
         # Link validation state if available from verification tab
         dossier_checked = False
@@ -2894,17 +2915,17 @@ with tab4:
                 st.success(f"✅ Linked verified documents for '{name}' (Document Trust Index Score: **{trust_score}%**)")
                 
         if not dossier_checked:
-            st.info("ℹ️ **Standard Underwriting Mode**: Using benchmark verification parameters for evaluation.")
+            st.info(t("ℹ_standard_underwriting_mode_using_bench"))
             
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("✍️ Underwriting Audit Notes")
+        st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+        st.subheader(t("underwriting_audit_notes"))
         officer_notes_input = st.text_area(
             "Write Field Notes & Special Observations (included in PDF sanction letter)", 
             value=f"Applicant credentials and document nodes reviewed. Pinned coordinates verified at survey boundary {vp['Survey_Number'] if vp else 'N/A'}."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(t("div"), unsafe_allow_html=True)
         
-        if st.button("Evaluate & Predict Loan Approval", key="btn_loan_main"):
+        if st.button(t("evaluate_predict_loan_approval"), key="btn_loan_main"):
             validation_errors = []
             
             # Check 1: Required documents uploaded
@@ -2938,14 +2959,14 @@ with tab4:
                 validation_errors.append("Requested loan sanction amount must be greater than 0.")
                 
             if validation_errors:
-                st.error("❌ **Evaluation Blocked: Input Validation Failure before AI Prediction:**\n" + 
+                st.error(t("evaluation_blocked_input_validation_fail") + 
                          "\n".join([f"• {err}" for err in validation_errors]))
                 st.stop()
                 
             # Run Strict Health Check validations before starting evaluation
             health_failures = run_system_health_checks()
             if health_failures:
-                st.error("❌ **Evaluation Terminated: System Health Check Failure**\n\n"
+                st.error("Evaluation Terminated: System Health Checks Failed!\n\n"
                          "The evaluation cannot proceed because the following services are unavailable:\n\n" +
                          "\n".join([f"• {fail}" for fail in health_failures]))
                 st.stop()
@@ -3202,14 +3223,14 @@ with tab4:
                 gc.collect()
                 log_memory_usage("After Loan Underwriting Prediction")
                 
-                st.success("🎉 Underwriting Predict Evaluation Complete! Decision matrix logged.")
+                st.success(t("underwriting_predict_evaluation_complete"))
                 st.rerun()
                 
         # Render Decision details if saved
         if "underwriting_timeline" in st.session_state and "underwriting_results" in st.session_state:
             # Show results on UI
-            st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-            st.subheader("📊 Underwriting Decision & Credit Audit")
+            st.markdown(t("div_class_glass_card"), unsafe_allow_html=True)
+            st.subheader(t("underwriting_decision_credit_audit"))
             
             # Retrieve evaluated variables from stored results
             ur = st.session_state["underwriting_results"]
@@ -3239,7 +3260,7 @@ with tab4:
             collateral_mode = ur["collateral_mode"]
             
             # Render DIGITAL LOAN TWIN Profile Card
-            st.markdown("#### 👤 Applicant Digital Loan Twin Profile")
+            st.markdown(t("applicant_digital_loan_twin_profile"))
             twin_c1, twin_c2 = st.columns(2)
             with twin_c1:
                 st.markdown(f"- **Unified Profile Owner**: {name} ({gender} / {married})")
@@ -3256,8 +3277,8 @@ with tab4:
             st.markdown("---")
             
             # Render Explainable AI Risk Waterfall
-            st.markdown("#### 🧠 Explainable AI (XAI) Waterfall Risk Breakdowns")
-            st.markdown("The following compliance deviations increased the overall risk index score of the applicant:")
+            st.markdown(t("explainable_ai_xai_waterfall_risk_breakd"))
+            st.markdown(t("the_following_compliance_deviations_incr"))
             risk_res_temp = calculate_aegis_risk(identity_res, income_res, property_res, credit_hist, ltv_ratio, dti_ratio, vp)
             xai_list = risk_res_temp["XAI_Waterfall"]
             for factor_item in xai_list:
@@ -3268,7 +3289,7 @@ with tab4:
             st.markdown("---")
             
             # AI Case Investigator Dossier Panel
-            st.markdown("#### 🔍 AI Case Investigator Dossier")
+            st.markdown(t("ai_case_investigator_dossier"))
             cinv_c1, cinv_c2 = st.columns(2)
             with cinv_c1:
                 # Trigger warning overrides
@@ -3279,21 +3300,21 @@ with tab4:
                 elif vp["Risk_Score"] >= 65.0:
                     st.markdown(f"**Rejection Trigger**: *Risk Threshold Override: Forced rejection due to High/Critical ARI Rating.*")
                 else:
-                    st.markdown("**Rejection Trigger**: *None (Parameters align within banking policy rules)*")
+                    st.markdown(t("rejection_trigger_none_parameters_align_"))
                 st.markdown(f"**Mandatory KYC Documents**: Verified (Aadhaar & PAN matched)")
             with cinv_c2:
-                st.markdown("**🔍 Recommended Underwriter Interview Questions:**")
+                st.markdown(t("recommended_underwriter_interview_questi"))
                 if trust_score < 80.0:
-                    st.write("1. *Ask the applicant to explain the Name/DOB discrepancies flag on Identity cards.*")
-                    st.write("2. *Request physical/original Sale Deed deeds to verify owner registry alignment.*")
+                    st.write(t("1_ask_the_applicant_to_explain_the_name_"))
+                    st.write(t("2_request_physical_original_sale_deed_de"))
                 else:
-                    st.write("1. *Verify the applicant's current net take-home salary is consistent.*")
-                    st.write("2. *Review standard field surveyor property photos before closing.*")
+                    st.write(t("1_verify_the_applicant_s_current_net_tak"))
+                    st.write(t("2_review_standard_field_surveyor_propert"))
                     
             st.markdown("---")
             
             # Underwriting timeline log render
-            st.markdown("#### 🕒 Underwriting Decision Lifecycle Timeline")
+            st.markdown(t("underwriting_decision_lifecycle_timeline"))
             for item in st.session_state["underwriting_timeline"]:
                 st.markdown(
                     f"""
@@ -3313,35 +3334,35 @@ with tab4:
                 if decision_text.upper() == "APPROVED":
                     confidence = int(max(70, min(99, 100 - vp['Risk_Score'])))
                     st.success(f"🎉 **LOAN APPROVED** | Confidence: `{confidence}%`")
-                    st.markdown("##### **🎯 Underwriting Highlights:**")
-                    st.markdown("- **`✓ Repayment Record Approved`**: Credit history aligns with guidelines.")
+                    st.markdown(t("underwriting_highlights"))
+                    st.markdown(t("repayment_record_approved_credit_history"))
                     if trust_score >= 85:
-                        st.markdown("- **`✓ Verified Credentials Dossier`**: Extracted names and DOB verified across Aadhaar/PAN.")
+                        st.markdown(t("verified_credentials_dossier_extracted_n"))
                     if ltv_ratio < 0.75:
-                        st.markdown("- **`✓ Safe Loan-to-Value (LTV)`**: Strong collateral guidance value margins.")
+                        st.markdown(t("safe_loan_to_value_ltv_strong_collateral"))
                     if dti_ratio < 0.45:
-                        st.markdown("- **`✓ Safe Debt-to-Income (DTI)`**: Monthly EMI constitutes a low risk share of total salary.")
+                        st.markdown(t("safe_debt_to_income_dti_monthly_emi_cons"))
                     if cashflow_res["Status"] == "PASS":
-                        st.markdown("- **`✓ Stable Bank Account Cashflow`**: Credit frequency and cash reserves verified.")
+                        st.markdown(t("stable_bank_account_cashflow_credit_freq"))
                 else:
                     confidence = int(max(70, min(99, vp['Risk_Score'])))
                     st.error(f"❌ **LOAN REJECTED** | Confidence: `{confidence}%`")
                     if trust_score < 80.0:
-                        st.warning("⚠️ Compliance Override: Document verification trust score below safe threshold.")
+                        st.warning(t("compliance_override_document_verificatio"))
                     elif vp["Risk_Score"] >= 65.0:
-                        st.warning("⚠️ Combined Risk Index exceeds maximum risk ceiling.")
+                        st.warning(t("combined_risk_index_exceeds_maximum_risk"))
                         
-                    st.markdown("##### **⚠️ Key Risk Deterrents:**")
+                    st.markdown(t("key_risk_deterrents"))
                     if credit_hist == 0.0:
-                        st.markdown("- **`✗ High Default Exposure`**: CIBIL defaults or prior payment issues detected.")
+                        st.markdown(t("high_default_exposure_cibil_defaults_or_"))
                     if trust_score < 80:
-                        st.markdown("- **`✗ Verification Deficit`**: Document name checks failed or documents are missing.")
+                        st.markdown(t("verification_deficit_document_name_check"))
                     if dti_ratio >= 0.55:
-                        st.markdown("- **`✗ Excessive Debt Burden (High DTI)`**: Monthly EMI exceeds maximum income ceiling.")
+                        st.markdown(t("excessive_debt_burden_high_dti_monthly_e"))
                     if ltv_ratio >= 0.85:
-                        st.markdown("- **`✗ High Valuation Risk (High LTV)`**: Loan request exceeds acceptable collateral margin.")
+                        st.markdown(t("high_valuation_risk_high_ltv_loan_reques"))
                     if cashflow_res["Average_Balance"] < emi * 1.2:
-                        st.markdown("- **`✗ Insufficient Balance Reserves`**: Average bank balance is too thin to buffer repayment.")
+                        st.markdown(t("insufficient_balance_reserves_average_ba"))
                     
                 st.markdown(f"**Aegis Risk Index:** `{vp['Risk_Score']}/100` ({risk_res_temp['Rating']})")
                 
@@ -3367,7 +3388,7 @@ with tab4:
                     property_match = 94
                     
                 st.markdown("---")
-                st.markdown("##### **📊 Dynamic Module Confidence Scores:**")
+                st.markdown(t("dynamic_module_confidence_scores"))
                 st.markdown(f"- **OCR Extraction**: `{ocr_conf}%` Accuracy")
                 st.markdown(f"- **PAN Verification**: `{pan_verification}%` Match")
                 st.markdown(f"- **Name Match Similarity**: `{name_similarity}%` Similarity")
@@ -3376,8 +3397,8 @@ with tab4:
                 st.markdown(f"- **Overall Risk Trust Index**: `{trust_score}%` Rating")
                 
             with rcol2:
-                st.markdown("#### 📥 Official Bank PDF Report")
-                st.markdown("Click below to download the combined Land/Home Valuation & Loan Sanction Letter PDF:")
+                st.markdown(t("official_bank_pdf_report"))
+                st.markdown(t("click_below_to_download_the_combined_lan"))
                 try:
                     pdf_n = f"assets/generated_letters/{name.replace(' ', '_')}_sanction_report.pdf"
                     if os.path.exists(pdf_n):
@@ -3394,10 +3415,10 @@ with tab4:
                     
             if st.session_state.get("developer_mode", False):
                 st.markdown("---")
-                st.subheader("🛠️ Developer Debugger: Model Input Vectors & Prediction Details")
+                st.subheader(t("developer_debugger_model_input_vectors_p"))
                 dev_col1, dev_col2 = st.columns(2)
                 with dev_col1:
-                    st.markdown("##### **🤖 Credit Classifier Input Features (loan_model)**")
+                    st.markdown(t("credit_classifier_input_features_loan_mo"))
                     st.markdown(f"- **Total Market Value**: `₹{vp['total_market_value']}`")
                     st.markdown(f"- **Total Guidance Value**: `₹{vp['total_guidance_value']}`")
                     st.markdown(f"- **LTV Ratio**: `{ltv_ratio}`")
@@ -3405,19 +3426,19 @@ with tab4:
                     st.markdown(f"- **Aegis Risk Index**: `{vp['Risk_Score']}`")
                     st.markdown(f"- **Credit History**: `{credit_hist}`")
                 with dev_col2:
-                    st.markdown("##### **📊 Dynamic Calculations & Verification Metrics**")
+                    st.markdown(t("dynamic_calculations_verification_metric"))
                     st.markdown(f"- **Document Trust Score**: `{trust_score}%`")
                     st.markdown(f"- **Monthly EMI**: `₹{emi:,.2f}`")
                     st.markdown(f"- **Decision Vector**: `{decision_text.upper()}`")
                     st.markdown(f"- **Confidence Index**: `{confidence}%`")
                     
             st.markdown("---")
-            st.markdown("#### 🤖 Groq LLM Underwriting Analysis")
+            st.markdown(t("groq_llm_underwriting_analysis"))
             st.markdown(ai_report)
             
             # Chat assistant copilot directly below predictions!
             st.markdown("---")
-            st.subheader("💬 AI Underwriting Copilot Chat")
+            st.subheader(t("ai_underwriting_copilot_chat"))
             ctx_chat = (
                 f"Applicant Name: {name}\n"
                 f"Income declared: ₹{app_income}/mo | Co-borrower: ₹{co_income}/mo\n"
@@ -3431,8 +3452,8 @@ with tab4:
             if "chat_history_main" not in st.session_state:
                 st.session_state["chat_history_main"] = []
                 
-            copilot_msg = st.text_input("💬 Ask the AI Underwriting Copilot...", key="copilot_msg_input")
-            if st.button("Query Copilot", key="btn_query_copilot"):
+            copilot_msg = st.text_input(t("ask_the_ai_underwriting_copilot"), key="copilot_msg_input")
+            if st.button(t("query_copilot"), key="btn_query_copilot"):
                 if copilot_msg:
                     with st.spinner("Copilot analyzing dossier..."):
                         copilot_reply = query_underwriter_chat(copilot_msg, ctx_chat)
@@ -3443,16 +3464,16 @@ with tab4:
                 st.write(f"🤖 **Copilot:** {a}")
                 st.markdown("---")
                 
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(t("div"), unsafe_allow_html=True)
 
 
 # ================= TAB 5: VALUATION & LOAN LOGS =================
 with tab5:
-    st.markdown("<div class='section-header'>📜 VALUATION & DECISION PORTAL LOGS</div>", unsafe_allow_html=True)
+    st.markdown(t("div_class_section_header_valuation_decis"), unsafe_allow_html=True)
     
     current_role = st.session_state.get("user_role", "👔 Loan Officer")
     if "Customer" in current_role:
-        st.warning("🔒 **Access Restricted**: History logs and decision audit trails are restricted to Loan Officers, Branch Managers, and System Administrators. Customer Portal users are not authorized to view internal bank logs.")
+        st.warning(t("access_restricted_history_logs_and_decis"))
     else:
         # Filter stats by the logged-in user's UID (different employee has different stats)
         user_uid = "N/A"
@@ -3465,7 +3486,7 @@ with tab5:
             user_fresh_history = pd.DataFrame(columns=history_df.columns)
             
         if user_fresh_history.empty:
-            st.info("No applications evaluated yet. History logs will populate automatically once you process values and loans.")
+            st.info(t("no_applications_evaluated_yet_history_lo"))
         else:
             st.dataframe(
                 user_fresh_history,
@@ -3481,12 +3502,12 @@ with tab5:
                 width='stretch'
             )
             
-            if st.button("Clear Logs / Reset Portal History"):
+            if st.button(t("clear_logs_reset_portal_history")):
                 if not history_df.empty and "User_UID" in history_df.columns:
                     # Remove only this user's records from the CSV file
                     updated_history_df = history_df[history_df["User_UID"] != user_uid]
                     updated_history_df.to_csv(HISTORY_FILE, index=False)
-                st.success("Portal history reset successfully. Reloading...")
+                st.success(t("portal_history_reset_successfully_reload"))
                 import time
                 time.sleep(1)
                 st.rerun()
