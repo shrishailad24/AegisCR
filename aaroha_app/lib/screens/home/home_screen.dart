@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:math' as math;
 import 'package:aaroha_app/screens/career/career_portal_screen.dart';
 import 'package:aaroha_app/screens/education/education_portal_screen.dart';
 import 'package:aaroha_app/screens/money/money_portal_screen.dart';
@@ -16,13 +19,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userId = 'test_user';
-  String _userName = 'Shash';
+  String _userId = AuthService.currentUser?.uid ?? 'guest_user';
+  String _userName = AuthService.currentUser?.displayName ?? 'Explorer';
+  String _weatherCondition = 'Sunny';
+  double _temperature = 27.0;
+  bool _isWeatherLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserSession();
+    _fetchWeather();
   }
 
   Future<void> _loadUserSession() async {
@@ -55,10 +62,105 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchWeather() async {
+    setState(() => _isWeatherLoading = true);
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(
+        'https://api.open-meteo.com/v1/forecast?latitude=12.9716&longitude=77.5946&current_weather=true'
+      ));
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final jsonString = await response.transform(utf8.decoder).join();
+        final data = json.decode(jsonString);
+        final currentWeather = data['current_weather'];
+        final temp = (currentWeather['temperature'] as num).toDouble();
+        final code = currentWeather['weathercode'] as int;
+
+        String condition = 'Sunny';
+        if (code == 0) {
+          condition = 'Sunny';
+        } else if (code >= 1 && code <= 3) {
+          condition = 'Cloudy';
+        } else if (code >= 51 && code <= 67 || code >= 80 && code <= 82) {
+          condition = 'Rainy';
+        } else if (code >= 71 && code <= 77) {
+          condition = 'Snowy';
+        } else if (code >= 95 && code <= 99) {
+          condition = 'Stormy';
+        } else {
+          condition = 'Cloudy';
+        }
+
+        setState(() {
+          _temperature = temp;
+          _weatherCondition = condition;
+          _isWeatherLoading = false;
+        });
+      } else {
+        setState(() => _isWeatherLoading = false);
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch weather: $e");
+      setState(() => _isWeatherLoading = false);
+    }
+  }
+
+  List<Color> _getWeatherGradientColors() {
+    switch (_weatherCondition) {
+      case 'Sunny':
+        return const [Color(0xFF2C241E), Color(0xFF0B0F19)];
+      case 'Cloudy':
+        return const [Color(0xFF1C2230), Color(0xFF0B0F19)];
+      case 'Rainy':
+      case 'Stormy':
+        return const [Color(0xFF141A28), Color(0xFF0B0F19)];
+      case 'Snowy':
+        return const [Color(0xFF1E2838), Color(0xFF0B0F19)];
+      default:
+        return const [Color(0xFF0B0F19), Color(0xFF05070B)];
+    }
+  }
+
+  IconData _getWeatherIcon() {
+    switch (_weatherCondition) {
+      case 'Sunny':
+        return Icons.wb_sunny;
+      case 'Cloudy':
+        return Icons.wb_cloudy;
+      case 'Rainy':
+        return Icons.umbrella;
+      case 'Stormy':
+        return Icons.thunderstorm;
+      case 'Snowy':
+        return Icons.ac_unit;
+      default:
+        return Icons.cloud;
+    }
+  }
+
+  Color _getWeatherColor() {
+    switch (_weatherCondition) {
+      case 'Sunny':
+        return Colors.orangeAccent;
+      case 'Cloudy':
+        return Colors.blueGrey;
+      case 'Rainy':
+        return Colors.blueAccent;
+      case 'Stormy':
+        return Colors.purpleAccent;
+      case 'Snowy':
+        return Colors.cyanAccent;
+      default:
+        return Colors.white70;
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F19),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -116,41 +218,61 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildGreetingBanner(),
-              const SizedBox(height: 24),
-
-              const Text(
-                "LIVE OS INSIGHTS",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+        child: Stack(
+          children: [
+            // Dynamic Background based on Weather
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: _getWeatherGradientColors(),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              _buildLiveInsightsGrid(),
-              const SizedBox(height: 28),
+            ),
+            // Animated Overlays (Particles, Flares, Clouds)
+            Positioned.fill(
+              child: WeatherAnimationOverlay(condition: _weatherCondition),
+            ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildGreetingBanner(),
+                  const SizedBox(height: 24),
 
-              const Text(
-                "INTELLIGENT LIFE BRAINS",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
+                  const Text(
+                    "LIVE OS INSIGHTS (SIMULATED)",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLiveInsightsGrid(),
+                  const SizedBox(height: 28),
+
+                  const Text(
+                    "INTELLIGENT LIFE BRAINS",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildBrainsGrid(context),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildBrainsGrid(context),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -236,6 +358,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getWeatherIcon(),
+                      color: _getWeatherColor(),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "$_weatherCondition • ${_temperature.toStringAsFixed(1)}°C",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -479,4 +634,141 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+// --- Weather Animation Overlay Widget ---
+class WeatherAnimationOverlay extends StatefulWidget {
+  final String condition;
+  const WeatherAnimationOverlay({super.key, required this.condition});
+
+  @override
+  State<WeatherAnimationOverlay> createState() => _WeatherAnimationOverlayState();
+}
+
+class _WeatherAnimationOverlayState extends State<WeatherAnimationOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        if (widget.condition == 'Rainy' || widget.condition == 'Stormy') {
+          return CustomPaint(
+            painter: RainPainter(_controller.value),
+            child: Container(),
+          );
+        } else if (widget.condition == 'Sunny') {
+          return CustomPaint(
+            painter: SunnyPainter(_controller.value),
+            child: Container(),
+          );
+        } else if (widget.condition == 'Cloudy') {
+          return CustomPaint(
+            painter: CloudyPainter(_controller.value),
+            child: Container(),
+          );
+        }
+        return Container();
+      },
+    );
+  }
+}
+
+// --- Rain Drops Custom Painter ---
+class RainPainter extends CustomPainter {
+  final double progress;
+  RainPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.lightBlueAccent.withOpacity(0.3)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 40; i++) {
+      double x = (i * 37) % size.width;
+      double speed = 1.0 + (i % 3) * 0.5;
+      double startY = ((progress * size.height * speed) + (i * 47)) % size.height;
+      canvas.drawLine(
+        Offset(x, startY),
+        Offset(x, startY + 15),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// --- Sunny Breathing Flares Custom Painter ---
+class SunnyPainter extends CustomPainter {
+  final double progress;
+  SunnyPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.amber.withOpacity(0.06)
+      ..style = PaintingStyle.fill;
+
+    double centerX = size.width * 0.8;
+    double centerY = size.height * 0.1;
+    double baseRadius = 80.0;
+    double scale = 1.0 + 0.15 * math.sin(progress * 2.0 * math.pi);
+
+    canvas.drawCircle(Offset(centerX, centerY), baseRadius * scale, paint);
+    canvas.drawCircle(
+      Offset(centerX, centerY),
+      (baseRadius + 50.0) * scale,
+      Paint()..color = Colors.amber.withOpacity(0.03),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// --- Cloudy Moving Mists Custom Painter ---
+class CloudyPainter extends CustomPainter {
+  final double progress;
+  CloudyPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.02)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 4; i++) {
+      double speed = 0.3 + (i * 0.15);
+      double x = ((progress * size.width * speed) + (i * size.width * 0.3)) % (size.width + 200.0) - 100.0;
+      double y = (size.height * 0.05) + (i * 40.0);
+      double radius = 40.0 + (i * 10.0);
+      canvas.drawCircle(Offset(x, y), radius, paint);
+      canvas.drawCircle(Offset(x + 30, y - 10), radius * 0.8, paint);
+      canvas.drawCircle(Offset(x - 30, y - 5), radius * 0.8, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

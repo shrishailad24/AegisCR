@@ -1,3 +1,4 @@
+import 'package:aaroha_app/core/constants.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -54,9 +55,7 @@ class _FocusModeScreenState extends State<FocusModeScreen> {
 
   // API Call: Save Focus Session & Fetch stats
   Future<void> _saveFocusSession(int duration, int score) async {
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/focus-session'),

@@ -1,3 +1,4 @@
+import 'package:aaroha_app/core/constants.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -21,9 +22,7 @@ class _VaultViewerScreenState extends State<VaultViewerScreen> {
   }
 
   Future<void> _fetchFiles() async {
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.get(Uri.parse('$baseUrl/list-files'));
       if (!mounted) return;

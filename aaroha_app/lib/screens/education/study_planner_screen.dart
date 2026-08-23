@@ -1,3 +1,4 @@
+import 'package:aaroha_app/core/constants.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -36,9 +37,7 @@ class _StudyPlannerScreenState extends State<StudyPlannerScreen> {
   // API Call: AI Study Planner
   Future<void> _generateStudyPlan() async {
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/study-planner'),
@@ -67,9 +66,7 @@ class _StudyPlannerScreenState extends State<StudyPlannerScreen> {
   Future<void> _generateExamStrategy() async {
     if (_strategySubjectC.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/exam-strategy'),
@@ -96,9 +93,7 @@ class _StudyPlannerScreenState extends State<StudyPlannerScreen> {
   Future<void> _generateSmartRevision() async {
     if (_revisionSubjectC.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/smart-revision'),

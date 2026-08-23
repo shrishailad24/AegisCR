@@ -108,8 +108,8 @@ class _CareerPortalScreenState extends State<CareerPortalScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Readiness Score",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          "Readiness Score (Simulated Baseline)",
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                         SizedBox(height: 6),
                         Text(

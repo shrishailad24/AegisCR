@@ -1,3 +1,4 @@
+import 'package:aaroha_app/core/constants.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -52,9 +53,7 @@ class _NotesTutorScreenState extends State<NotesTutorScreen>
     if (text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       // Modify doubt query to enforce multilingual requirement
       final localizedQuery =
@@ -89,9 +88,7 @@ class _NotesTutorScreenState extends State<NotesTutorScreen>
     if (content.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       // Generate summary and flashcards from direct input text or mock file
       final response = await http.post(
@@ -145,9 +142,7 @@ class _NotesTutorScreenState extends State<NotesTutorScreen>
     if (text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/lecture-assistant'),
@@ -172,9 +167,7 @@ class _NotesTutorScreenState extends State<NotesTutorScreen>
     if (text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:8002'
-        : 'http://10.0.2.2:8002';
+    final String baseUrl = AppConstants.baseUrl;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/education/research-assistant'),
