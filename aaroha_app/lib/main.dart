@@ -9,18 +9,33 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyDU6Jt_23qht85yicJUxB-rlD1bUg4nCZE",
-        appId: "1:185545417054:web:e712a20e2efc4d29b0f19e",
-        messagingSenderId: "185545417054",
-        projectId: "aaroha-cbd26",
-        storageBucket: "aaroha-cbd26.firebasestorage.app",
-      ),
-    );
-  } else {
-    await Firebase.initializeApp();
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyDU6Jt_23qht85yicJUxB-rlD1bUg4nCZE",
+          appId: "1:185545417054:web:e712a20e2efc4d29b0f19e",
+          messagingSenderId: "185545417054",
+          projectId: "aaroha-cbd26",
+          storageBucket: "aaroha-cbd26.firebasestorage.app",
+        ),
+      );
+    } else {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyDU6Jt_23qht85yicJUxB-rlD1bUg4nCZE",
+          appId: "1:185545417054:android:2a2d9ea66935fa51e3efcf",
+          messagingSenderId: "185545417054",
+          projectId: "aaroha-cbd26",
+          storageBucket: "aaroha-cbd26.firebasestorage.app",
+        ),
+      );
+    }
+  } catch (e) {
+    debugPrint("Firebase init note: $e");
+    try {
+      await Firebase.initializeApp();
+    } catch (_) {}
   }
   runApp(const AAROHAApp());
 }
